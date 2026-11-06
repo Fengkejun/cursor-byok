@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512" role="img" aria-label="节点箭头">
+<defs>
+<radialGradient id="bg" cx="0.4" cy="0.4" r="0.8">
+  <stop offset="0" stop-color="#0E2030"/>
+  <stop offset="0.6" stop-color="#070C14"/>
+  <stop offset="1" stop-color="#04060A"/>
+</radialGradient>
+<linearGradient id="line" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0" stop-color="#22D3EE"/>
+  <stop offset="1" stop-color="#818CF8"/>
+</linearGradient>
+<radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+  <stop offset="0" stop-color="#22D3EE" stop-opacity="0.3"/>
+  <stop offset="1" stop-color="#22D3EE" stop-opacity="0"/>
+</radialGradient>
+<filter id="blur" x="-60%" y="-60%" width="220%" height="220%">
+  <feGaussianBlur stdDeviation="10"/>
+</filter>
+</defs>
+
+<rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bg)"/>
+<circle cx="250" cy="250" r="190" fill="url(#glow)"/>
+<path d="M168 148 L168 336 L214 292 L250 372 L292 354 L256 278 L330 278 Z"
+      fill="#FFFFFF" fill-opacity="0.07" stroke="url(#line)" stroke-width="7" stroke-linejoin="round"/>
+<g stroke="url(#line)" stroke-width="6" stroke-linecap="round">
+  <line x1="168" y1="148" x2="330" y2="278"/>
+  <line x1="168" y1="336" x2="250" y2="372"/>
+  <line x1="214" y1="292" x2="168" y2="148" stroke-opacity="0.5"/>
+</g>
+<g fill="#0A1522" stroke="url(#line)" stroke-width="7">
+  <circle cx="168" cy="148" r="13"/>
+  <circle cx="168" cy="336" r="13"/>
+  <circle cx="214" cy="292" r="13"/>
+  <circle cx="250" cy="372" r="13"/>
+  <circle cx="292" cy="354" r="13"/>
+  <circle cx="256" cy="278" r="13"/>
+  <circle cx="330" cy="278" r="13"/>
+</g>
+<g filter="url(#blur)" opacity="0.8">
+  <circle cx="330" cy="278" r="22" fill="#22D3EE"/>
+</g>
+<circle cx="330" cy="278" r="7" fill="#E0F7FF"/>
+<line x1="330" y1="278" x2="392" y2="196" stroke="#22D3EE" stroke-width="4" stroke-dasharray="3 10" stroke-linecap="round" opacity="0.85"/>
+<circle cx="392" cy="196" r="9" fill="#0A1522" stroke="#22D3EE" stroke-width="5"/>
+<circle cx="392" cy="196" r="3" fill="#E0F7FF"/>
+
+</svg>

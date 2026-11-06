@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512" role="img" aria-label="霓虹光标">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0" stop-color="#070B14"/>
+  <stop offset="1" stop-color="#111A2E"/>
+</linearGradient>
+<radialGradient id="glow" cx="0.42" cy="0.44" r="0.62">
+  <stop offset="0" stop-color="#22D3EE" stop-opacity="0.38"/>
+  <stop offset="0.55" stop-color="#6366F1" stop-opacity="0.16"/>
+  <stop offset="1" stop-color="#6366F1" stop-opacity="0"/>
+</radialGradient>
+<linearGradient id="arrow" x1="0" y1="0" x2="0.4" y2="1">
+  <stop offset="0" stop-color="#FFFFFF"/>
+  <stop offset="1" stop-color="#CDD8FF"/>
+</linearGradient>
+<linearGradient id="spark" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0" stop-color="#22D3EE"/>
+  <stop offset="1" stop-color="#A855F7"/>
+</linearGradient>
+<filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+  <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#000000" flood-opacity="0.45"/>
+</filter>
+<filter id="blur" x="-60%" y="-60%" width="220%" height="220%">
+  <feGaussianBlur stdDeviation="14"/>
+</filter>
+</defs>
+
+<rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bg)"/>
+<circle cx="238" cy="252" r="210" fill="url(#glow)"/>
+<rect x="16" y="16" width="480" height="480" rx="112" fill="none" stroke="#FFFFFF" stroke-opacity="0.09" stroke-width="2"/>
+<g filter="url(#soft)">
+  <path d="M178 132 L178 344 L232 292 L268 372 L310 354 L274 276 L346 276 Z"
+        fill="url(#arrow)" stroke="url(#arrow)" stroke-width="10" stroke-linejoin="round"/>
+</g>
+<g filter="url(#blur)" opacity="0.55"><path d="M 368 120 C 379.44 160.56 379.44 160.56 420 172 C 379.44 183.44 379.44 183.44 368 224 C 356.56 183.44 356.56 183.44 316 172 C 356.56 160.56 356.56 160.56 368 120 Z" fill="#8B5CF6" opacity="1.0"/></g>
+<path d="M 368 130 C 377.24 162.76 377.24 162.76 410 172 C 377.24 181.24 377.24 181.24 368 214 C 358.76 181.24 358.76 181.24 326 172 C 358.76 162.76 358.76 162.76 368 130 Z" fill="url(#spark)" opacity="1.0"/>
+<circle cx="332" cy="132" r="7" fill="#22D3EE" opacity="0.9"/>
+
+</svg>

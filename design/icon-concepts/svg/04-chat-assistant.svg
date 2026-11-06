@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512" role="img" aria-label="对话助手">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0" stop-color="#121635"/>
+  <stop offset="1" stop-color="#070912"/>
+</linearGradient>
+<linearGradient id="bubble" x1="0.15" y1="0" x2="0.85" y2="1">
+  <stop offset="0" stop-color="#8B5CF6"/>
+  <stop offset="0.55" stop-color="#6366F1"/>
+  <stop offset="1" stop-color="#3B82F6"/>
+</linearGradient>
+<linearGradient id="arrow" x1="0" y1="0" x2="0.3" y2="1">
+  <stop offset="0" stop-color="#FFFFFF"/>
+  <stop offset="1" stop-color="#E0E7FF"/>
+</linearGradient>
+<radialGradient id="glow" cx="0.5" cy="0.45" r="0.6">
+  <stop offset="0" stop-color="#8B5CF6" stop-opacity="0.35"/>
+  <stop offset="1" stop-color="#8B5CF6" stop-opacity="0"/>
+</radialGradient>
+<filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+  <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#000000" flood-opacity="0.45"/>
+</filter>
+</defs>
+
+<rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bg)"/>
+<circle cx="256" cy="262" r="200" fill="url(#glow)"/>
+<g filter="url(#soft)">
+  <rect x="86" y="122" width="340" height="248" rx="70" fill="url(#bubble)"/>
+  <path d="M156 358 L156 424 L222 366 Z" fill="#5B5BF0"/>
+</g>
+<rect x="86" y="122" width="340" height="248" rx="70" fill="none" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="3"/>
+<path d="M206 180 L206 340 L248 298 L278 364 L312 348 L282 284 L342 284 Z"
+      fill="url(#arrow)" stroke="url(#arrow)" stroke-width="9" stroke-linejoin="round"/>
+<path d="M 356 168 C 362.16 189.84 362.16 189.84 384 196 C 362.16 202.16 362.16 202.16 356 224 C 349.84 202.16 349.84 202.16 328 196 C 349.84 189.84 349.84 189.84 356 168 Z" fill="#FFFFFF" opacity="1.0"/>
+<circle cx="140" cy="188" r="5" fill="#FFFFFF" opacity="0.55"/>
+
+</svg>

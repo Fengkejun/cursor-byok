@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512" role="img" aria-label="字母 C">
+<defs>
+<radialGradient id="bg" cx="0.7" cy="0.2" r="0.9">
+  <stop offset="0" stop-color="#151A33"/>
+  <stop offset="0.6" stop-color="#0A0C16"/>
+  <stop offset="1" stop-color="#05060A"/>
+</radialGradient>
+<linearGradient id="c" x1="0.1" y1="0.9" x2="0.9" y2="0.1">
+  <stop offset="0" stop-color="#34D399"/>
+  <stop offset="0.5" stop-color="#22D3EE"/>
+  <stop offset="1" stop-color="#6366F1"/>
+</linearGradient>
+<radialGradient id="cg" cx="0.5" cy="0.45" r="0.55">
+  <stop offset="0" stop-color="#22D3EE" stop-opacity="0.22"/>
+  <stop offset="1" stop-color="#22D3EE" stop-opacity="0"/>
+</radialGradient>
+<filter id="blur" x="-60%" y="-60%" width="220%" height="220%">
+  <feGaussianBlur stdDeviation="18"/>
+</filter>
+</defs>
+
+<rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bg)"/>
+<circle cx="236" cy="250" r="200" fill="url(#cg)"/>
+<g filter="url(#blur)" opacity="0.6">
+  <path d="M 353.25 349.99 A 140 140 0 1 1 353.25 170.01" fill="none" stroke="url(#c)" stroke-width="68" stroke-linecap="round"/>
+</g>
+<path d="M 353.25 349.99 A 140 140 0 1 1 353.25 170.01" fill="none" stroke="url(#c)" stroke-width="62" stroke-linecap="round"/>
+<path d="M 388 124 C 395.48 150.52 395.48 150.52 422 158 C 395.48 165.48 395.48 165.48 388 192 C 380.52 165.48 380.52 165.48 354 158 C 380.52 150.52 380.52 150.52 388 124 Z" fill="#FFFFFF" opacity="1.0"/>
+<circle cx="410" cy="212" r="6" fill="#22D3EE"/>
+
+</svg>
