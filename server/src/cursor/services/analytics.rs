@@ -14,6 +14,10 @@ use crate::{api::cursor::proxy, Error, Result};
 
 pub const BOOTSTRAP_STATSIG_PATH: &str = "/aiserver.v1.AnalyticsService/BootstrapStatsig";
 const AGENT_RETRIES_GATE: &str = "nal_agent_retries";
+// This gateway implements AgentClientMessage/AgentServerMessage. Cursor's
+// managed-local loop instead sends RunInferenceClientMessage on the same Bidi
+// endpoint, whose run_request starts with a conversation ID rather than state.
+const LOCAL_LOOP_GATE: &str = "agent_host_local_loop";
 const LOCAL_RULE: &str = "local_enabled";
 
 #[derive(Clone, PartialEq, Message)]
@@ -51,7 +55,7 @@ fn patch_upstream(response: proxy::BufferedResponse) -> Result<Response<Body>> {
     let (framed, payload) = unary_payload(&response.body)?;
     let mut message = BootstrapStatsigResponse::decode(payload)?;
     let mut config = serde_json::from_str::<Value>(&message.config)?;
-    enable_agent_retries(&mut config)?;
+    configure_agent_protocol(&mut config)?;
     message.config = serde_json::to_string(&config)?;
     Ok(response.with_body(encode_unary(&message, framed)))
 }
@@ -74,7 +78,7 @@ fn local_response() -> Result<Response<Body>> {
         },
         "time": generated_at_ms
     });
-    enable_agent_retries(&mut config)?;
+    configure_agent_protocol(&mut config)?;
     let message = BootstrapStatsigResponse {
         config: serde_json::to_string(&config)?,
         generated_at_ms,
@@ -96,8 +100,9 @@ fn local_response() -> Result<Response<Body>> {
     Ok(response)
 }
 
-fn enable_agent_retries(config: &mut Value) -> Result<()> {
+fn configure_agent_protocol(config: &mut Value) -> Result<()> {
     let gate_key = statsig_key(config, AGENT_RETRIES_GATE);
+    let local_loop_key = statsig_key(config, LOCAL_LOOP_GATE);
     let root = config
         .as_object_mut()
         .ok_or_else(|| Error::Protocol("Statsig bootstrap config must be an object".into()))?;
@@ -106,7 +111,11 @@ fn enable_agent_retries(config: &mut Value) -> Result<()> {
         .or_insert_with(|| Value::Object(Map::new()))
         .as_object_mut()
         .ok_or_else(|| Error::Protocol("Statsig feature_gates must be an object".into()))?;
-    gates.insert(gate_key.clone(), enabled_gate(&gate_key));
+    gates.insert(gate_key.clone(), configured_gate(&gate_key, true));
+    gates.insert(
+        local_loop_key.clone(),
+        configured_gate(&local_loop_key, false),
+    );
     Ok(())
 }
 
@@ -127,10 +136,10 @@ fn djb2(value: &str) -> String {
         .to_string()
 }
 
-fn enabled_gate(name: &str) -> Value {
+fn configured_gate(name: &str, enabled: bool) -> Value {
     json!({
         "name": name,
-        "value": true,
+        "value": enabled,
         "rule_id": LOCAL_RULE,
         "ruleID": LOCAL_RULE,
         "group_name": LOCAL_RULE,
@@ -173,4 +182,45 @@ fn encode_unary(message: &impl Message, framed: bool) -> Bytes {
     output.put_u32(payload.len() as u32);
     output.extend_from_slice(&payload);
     output.freeze()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn selects_supported_agent_protocol_for_all_statsig_hash_formats() {
+        for hash in ["none", "djb2", "sha256"] {
+            let mut config = json!({"hash_used": hash, "feature_gates": {}});
+            let gate_key = statsig_key(&config, "agent_host_local_loop");
+            config["feature_gates"][&gate_key] = json!({"value": true});
+            configure_agent_protocol(&mut config).unwrap();
+            assert_eq!(
+                config["feature_gates"][&gate_key]["value"], false,
+                "RunInference must stay disabled for {hash}"
+            );
+            let retries = statsig_key(&config, AGENT_RETRIES_GATE);
+            assert_eq!(config["feature_gates"][retries]["value"], true);
+        }
+    }
+
+    #[test]
+    fn preserves_unrelated_upstream_configuration() {
+        let mut config = json!({
+            "hash_used": "none",
+            "feature_gates": {"unrelated": {"value": true}},
+            "dynamic_configs": {"existing": {"value": {"a": 1}}}
+        });
+        let before = config.clone();
+        configure_agent_protocol(&mut config).unwrap();
+        assert_eq!(
+            config["feature_gates"]["unrelated"],
+            before["feature_gates"]["unrelated"]
+        );
+        assert_eq!(config["dynamic_configs"], before["dynamic_configs"]);
+        assert_eq!(
+            config["feature_gates"]["agent_host_local_loop"]["value"],
+            false
+        );
+    }
 }

@@ -49,6 +49,14 @@ cursor-byok 是一个开源的本地模型网关。它在你的设备上运行�
 
 完整的安装步骤、配置说明和常见问题，请参阅[中文使用指南](https://docs.leokun.cn/zh/docs)。
 
+### 新版 Cursor 的 Agent 协议兼容
+
+本网关处理 `AgentClientMessage` Agent 协议。部分新版 Cursor 会启用本地 Agent 循环，
+在同一个 Bidi 接口发送另一种 `RunInferenceClientMessage` 协议；旧网关会因此报告
+`ConversationStateStructure.summary` 或 `file_states` 的 Protobuf 解码错误。
+网关通过启动配置关闭 `agent_host_local_loop`，使 Cursor 选择当前支持的 Agent 协议。
+升级后请完全退出所有 Cursor 窗口、重新打开并新建对话，让配置重新生效。
+
 > [!TIP]
 > 首次升级 Cursor 或首次完成配置后，必须完全退出并重新启动 Cursor，再新开一个对话。配置前已经打开的对话不会加载新连接；使用自定义模型时，请在模型列表中手动选择该模型，不要选择 **Auto**。
 
