@@ -164,8 +164,8 @@ pub fn decode(request: &ai::BidiAppendRequest) -> Result<DecodedAppend> {
     // long histories). It carries the same AgentClientMessage as the hex `data`
     // field, so decode whichever one is present instead of rejecting the request.
     if !request.data_binary.is_empty() {
-        let message = agent::AgentClientMessage::decode(request.data_binary.as_slice())
-            .map_err(|error| {
+        let message =
+            agent::AgentClientMessage::decode(request.data_binary.as_slice()).map_err(|error| {
                 Error::Protocol(format!(
                     "BidiAppend data_binary is not an AgentClientMessage: {error}"
                 ))
@@ -278,7 +278,10 @@ mod tests {
     #[test]
     fn prefers_binary_payload_when_both_are_present() {
         let message = run_request("binary/model");
-        let request = append_request(&hex::encode(run_request("hex/model").encode_to_vec()), message.encode_to_vec());
+        let request = append_request(
+            &hex::encode(run_request("hex/model").encode_to_vec()),
+            message.encode_to_vec(),
+        );
         let decoded = decode(&request).expect("decode");
         assert_eq!(decoded.model_id(), Some("binary/model"));
     }

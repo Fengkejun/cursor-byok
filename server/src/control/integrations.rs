@@ -329,20 +329,20 @@ fn dsh_status(saved: &ToolTakeoverState) -> Result<IntegrationStatus> {
             });
         }
     };
-    let (current_model, current_provider) = content
-        .as_deref()
-        .map(dsh_current)
-        .unwrap_or_default();
+    let (current_model, current_provider) = content.as_deref().map(dsh_current).unwrap_or_default();
     let installed = content
         .as_deref()
         .map(|text| text.contains(&format!("{DSH_PROVIDER_ID}:")))
         .unwrap_or(false);
     if !installed {
-        notes.push(format!(
-            "配置文件里没有 {DSH_PROVIDER_ID} 供应商，无法接管"
-        ));
+        notes.push(format!("配置文件里没有 {DSH_PROVIDER_ID} 供应商，无法接管"));
     }
-    if installed && content.as_deref().map(|text| text.contains("models:")).unwrap_or(false) {
+    if installed
+        && content
+            .as_deref()
+            .map(|text| text.contains("models:"))
+            .unwrap_or(false)
+    {
         notes.push("模型列表是静态副本，接管后会随助手模型变化自动重写".into());
     }
     if saved.applied {
@@ -368,13 +368,11 @@ fn dsh_current(content: &str) -> (String, String) {
     let Ok(value) = serde_yaml::from_str::<Value>(content) else {
         return (String::new(), String::new());
     };
-    let profile = value
-        .as_array()
-        .and_then(|entries| {
-            entries.iter().find(|entry| {
-                entry.get("id").and_then(Value::as_str) == Some("llm-pi-ai")
-            })
-        });
+    let profile = value.as_array().and_then(|entries| {
+        entries
+            .iter()
+            .find(|entry| entry.get("id").and_then(Value::as_str) == Some("llm-pi-ai"))
+    });
     let Some(profile) = profile else {
         return (String::new(), String::new());
     };
@@ -469,7 +467,8 @@ fn claude_status(saved: &ToolTakeoverState) -> Result<IntegrationStatus> {
         notes.push(if saved.applied {
             "已同时写入 settings.local.json（原内容已备份）".into()
         } else {
-            "检测到 settings.local.json，它的环境变量会覆盖 settings.json；接管时会一并修改并备份".into()
+            "检测到 settings.local.json，它的环境变量会覆盖 settings.json；接管时会一并修改并备份"
+                .into()
         });
     }
     if saved.applied {
@@ -608,9 +607,10 @@ fn codex_catalog_template() -> Option<Value> {
         let Some(entries) = value.get("models").and_then(Value::as_array) else {
             continue;
         };
-        if let Some(entry) = entries.iter().find(|entry| {
-            entry.get("slug").is_some() && entry.get("model_messages").is_some()
-        }) {
+        if let Some(entry) = entries
+            .iter()
+            .find(|entry| entry.get("slug").is_some() && entry.get("model_messages").is_some())
+        {
             return Some(entry.clone());
         }
     }
@@ -738,12 +738,9 @@ fn render_dsh_config(
         let end = (default_index + 1..lines.len())
             .find(|index| lines[*index].trim().starts_with("- id: "))
             .unwrap_or(lines.len());
-        for (key, value) in [
-            ("provider:", DSH_PROVIDER_ID),
-            ("model:", model),
-        ] {
-            if let Some(index) = (default_index + 1..end)
-                .find(|index| lines[*index].trim_start().starts_with(key))
+        for (key, value) in [("provider:", DSH_PROVIDER_ID), ("model:", model)] {
+            if let Some(index) =
+                (default_index + 1..end).find(|index| lines[*index].trim_start().starts_with(key))
             {
                 let indent = " ".repeat(indent_of(&lines[index]));
                 lines[index] = format!("{indent}{key} {}", quote(value));
@@ -1017,9 +1014,7 @@ command = "npx"
         assert!(rendered.contains("model = \"plugin:example:codex/gpt-6.1-sol\""));
         assert!(rendered.contains("model_provider = \"cursor-byok\""));
         assert!(rendered.contains("preferred_auth_method = \"apikey\""));
-        assert!(rendered.contains(&format!(
-            "model_catalog_json = \"{CODEX_CATALOG_FILE}\""
-        )));
+        assert!(rendered.contains(&format!("model_catalog_json = \"{CODEX_CATALOG_FILE}\"")));
         assert!(rendered.contains("[model_providers.custom]"));
         assert!(rendered.contains("[mcp_servers.firecrawl]"));
         assert!(rendered.contains("[model_providers.cursor-byok]"));
@@ -1164,7 +1159,13 @@ key = "value"
             .unwrap();
         let provider = &profile["config"]["providers"]["cursorbyok"];
         assert_eq!(provider["models"].as_sequence().unwrap().len(), 2);
-        assert_eq!(provider["baseURL"].as_str().unwrap(), "http://127.0.0.1:61702/byok/v1");
-        assert_eq!(dsh_current(&rendered).0, "antigravity/gemini-3.8-flash-high");
+        assert_eq!(
+            provider["baseURL"].as_str().unwrap(),
+            "http://127.0.0.1:61702/byok/v1"
+        );
+        assert_eq!(
+            dsh_current(&rendered).0,
+            "antigravity/gemini-3.8-flash-high"
+        );
     }
 }

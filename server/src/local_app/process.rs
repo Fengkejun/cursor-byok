@@ -83,7 +83,11 @@ pub async fn cursor_running() -> bool {
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 pub async fn cursor_running() -> bool {
-    let name = if cfg!(target_os = "macos") { "Cursor" } else { "cursor" };
+    let name = if cfg!(target_os = "macos") {
+        "Cursor"
+    } else {
+        "cursor"
+    };
     matches!(
         Command::new("pgrep").args(["-x", name]).status().await,
         Ok(status) if status.success()
@@ -144,9 +148,8 @@ pub async fn cursor_executable() -> Option<PathBuf> {
 
 #[cfg(windows)]
 async fn launch_cursor(executable: Option<&Path>) -> Result<()> {
-    let path = executable.ok_or_else(|| {
-        Error::Config("could not find the Cursor executable to restart".into())
-    })?;
+    let path = executable
+        .ok_or_else(|| Error::Config("could not find the Cursor executable to restart".into()))?;
     Command::new(path)
         .spawn()
         .map(|_| ())

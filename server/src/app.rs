@@ -20,7 +20,8 @@ use crate::{
     Result,
 };
 
-pub struct App {    config: Config,
+pub struct App {
+    config: Config,
     router: axum::Router,
     registry: TransportRegistry,
     harness: CursorHarness,
