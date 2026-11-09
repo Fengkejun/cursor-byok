@@ -137,6 +137,7 @@
   "4a8d6841b4023edf": "Confirm import",
   "4aca6a31090fe2b8": "Initializing…",
   "4b458e6e147221d7": "The standard endpoint path is appended automatically for the selected protocol.",
+  "4c6de01bbe86b3d8": "Copy address",
   "4d99c976beb8827e": "Ready",
   "4e30d7c9ed2b0eee": "Not set",
   "4eafa9e925b30bcd": "Custom",
@@ -168,6 +169,7 @@
   "5f8d556a9c47da3c": "Launch at login disabled",
   "5fd2ec5a6e9b654c": "Total: {cost}",
   "6003d3246f0fca2b": "Model management",
+  "6067a841f8097835": "API key copied",
   "6078a681a306930d": "Cache write",
   "609640f72d422b57": "Quick time ranges",
   "60e7671141df2731": "Input price",
@@ -228,6 +230,7 @@
   "842b9f11cdd96bda": "Launch at login",
   "843ac7e15a5047a7": "Confirm legacy model configuration import",
   "844b8cc8dff7c1d8": "Default",
+  "84e6d782ac955d41": "Base URL copied",
   "857d282a0213d785": "External API",
   "864597982c308d72": "Silent start enabled",
   "86de7c4ee8fa7689": "Sync models",
@@ -354,6 +357,7 @@
   "d0bfccc77315d887": "Last month",
   "d1251cd752d4ec25": "Leave blank to use adaptive thinking.",
   "d1a3d72618d1ed27": "All call summaries, detailed content, and trace records will be deleted. Model configuration, CA, and application settings are unaffected. This action cannot be undone.",
+  "d22d5fd54ca0aef5": "Copy key",
   "d2d648bd1c94b7f9": "Authentication",
   "d2fcdde81f06645c": "Bulk export",
   "d34335433395cd3a": "Start Cursor BYOK automatically after signing in.",
@@ -459,3 +463,4 @@
   "ff66b1c7e010bbc2": "Paste the authorization command into the terminal and enter your password, then click the button below",
   "ff673195f05fb056": "Service port"
 }
+

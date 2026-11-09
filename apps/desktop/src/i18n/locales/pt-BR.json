@@ -137,6 +137,7 @@
   "4a8d6841b4023edf": "Confirmar importação",
   "4aca6a31090fe2b8": "Inicializando…",
   "4b458e6e147221d7": "O caminho padrão do endpoint é adicionado automaticamente de acordo com o protocolo selecionado.",
+  "4c6de01bbe86b3d8": "Copiar endereço",
   "4d99c976beb8827e": "Disponível",
   "4e30d7c9ed2b0eee": "Não definir",
   "4eafa9e925b30bcd": "Personalizado",
@@ -168,6 +169,7 @@
   "5f8d556a9c47da3c": "Inicialização com o sistema desativada",
   "5fd2ec5a6e9b654c": "Total: {cost}",
   "6003d3246f0fca2b": "Gerenciamento de modelos",
+  "6067a841f8097835": "Chave da API copiada",
   "6078a681a306930d": "Gravação em cache",
   "609640f72d422b57": "Intervalos de tempo rápidos",
   "60e7671141df2731": "Preço de entrada",
@@ -228,6 +230,7 @@
   "842b9f11cdd96bda": "Iniciar com o sistema",
   "843ac7e15a5047a7": "Confirmar importação da configuração legada de modelos",
   "844b8cc8dff7c1d8": "Padrão",
+  "84e6d782ac955d41": "Endereço base copiado",
   "857d282a0213d785": "API externa",
   "864597982c308d72": "Inicialização silenciosa ativada",
   "86de7c4ee8fa7689": "Sincronizar modelos",
@@ -354,6 +357,7 @@
   "d0bfccc77315d887": "Último mês",
   "d1251cd752d4ec25": "Deixe em branco para usar adaptive thinking.",
   "d1a3d72618d1ed27": "Todos os resumos de chamadas, conteúdos detalhados e registros de rastreamento serão excluídos. Configurações de modelo, CA e aplicativo não serão afetadas. Esta ação não pode ser desfeita.",
+  "d22d5fd54ca0aef5": "Copiar chave",
   "d2d648bd1c94b7f9": "Autenticação",
   "d2fcdde81f06645c": "Exportar em lote",
   "d34335433395cd3a": "Iniciar o Cursor BYOK automaticamente ao fazer login no sistema.",
@@ -459,3 +463,4 @@
   "ff66b1c7e010bbc2": "Cole o comando de autorização no terminal e insira sua senha; ao concluir, clique no botão abaixo",
   "ff673195f05fb056": "Porta do serviço"
 }
+

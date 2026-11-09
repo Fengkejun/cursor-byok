@@ -37,6 +37,16 @@ export function ExternalApiSettingsCard({ servicePort }: { servicePort: number }
   const address = `http://127.0.0.1:${servicePort}/byok/v1`;
   const changed = saved && (saved.enabled !== draft.enabled || saved.api_key !== draft.api_key);
 
+  const copy = async (text: string, done: string) => {
+    if (!text) return;
+    try {
+      await api.copyCursorText(text);
+      message(done);
+    } catch (cause) {
+      message(cause instanceof Error ? cause.message : String(cause));
+    }
+  };
+
   return <TitledCard title={t("外部 API")} action={<Button size="small" variant="primary" disabled={!changed || saving} onClick={() => void save()}>
     {saving ? t("保存中…") : t("保存")}
   </Button>}>
@@ -50,13 +60,21 @@ export function ExternalApiSettingsCard({ servicePort }: { servicePort: number }
           onChange={(enabled) => setDraft((current) => ({ ...current, enabled }))} />
       </div>
       <FormField label={t("API 密钥")} hint={t("开启后，所有外部请求都必须提供此密钥。")}> 
-        <SecretTextInput value={draft.api_key} autoComplete="off" disabled={!saved || saving}
-          onChange={(event) => setDraft((current) => ({ ...current, api_key: event.target.value }))} />
+        <div className={styles.secretRow}>
+          <SecretTextInput value={draft.api_key} autoComplete="off" disabled={!saved || saving}
+            onChange={(event) => setDraft((current) => ({ ...current, api_key: event.target.value }))} />
+          <Button size="small" disabled={!draft.api_key} onClick={() => void copy(draft.api_key, t("API 密钥已复制"))}>
+            {t("复制密钥")}
+          </Button>
+        </div>
       </FormField>
       <div className={styles.address}>
         <strong>{t("基础地址")}</strong>
         <code>{address}</code>
+        <Button size="small" onClick={() => void copy(address, t("基础地址已复制"))}>{t("复制地址")}</Button>
       </div>
     </div>
   </TitledCard>;
 }
+
+

@@ -582,12 +582,12 @@
       "refs": [
         {
           "file": "features/settings/ExternalApiSettingsCard.tsx",
-          "line": 46,
+          "line": 56,
           "column": 20
         },
         {
           "file": "features/settings/ExternalApiSettingsCard.tsx",
-          "line": 49,
+          "line": 59,
           "column": 24
         }
       ]
@@ -2060,6 +2060,18 @@
         }
       ]
     },
+    "4c6de01bbe86b3d8": {
+      "source": "复制地址",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ExternalApiSettingsCard.tsx",
+          "line": 74,
+          "column": 80
+        }
+      ]
+    },
     "4d99c976beb8827e": {
       "source": "可用",
       "kind": "text",
@@ -2462,7 +2474,7 @@
       "refs": [
         {
           "file": "features/settings/ExternalApiSettingsCard.tsx",
-          "line": 52,
+          "line": 62,
           "column": 25
         }
       ]
@@ -2502,6 +2514,18 @@
           "file": "features/plugins/PluginResourcePanels.tsx",
           "line": 272,
           "column": 102
+        }
+      ]
+    },
+    "6067a841f8097835": {
+      "source": "API 密钥已复制",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ExternalApiSettingsCard.tsx",
+          "line": 66,
+          "column": 98
         }
       ]
     },
@@ -3069,7 +3093,7 @@
       "refs": [
         {
           "file": "features/settings/ExternalApiSettingsCard.tsx",
-          "line": 47,
+          "line": 57,
           "column": 19
         }
       ]
@@ -3330,6 +3354,18 @@
         }
       ]
     },
+    "84e6d782ac955d41": {
+      "source": "基础地址已复制",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ExternalApiSettingsCard.tsx",
+          "line": 74,
+          "column": 64
+        }
+      ]
+    },
     "857d282a0213d785": {
       "source": "外部 API",
       "kind": "text",
@@ -3337,7 +3373,7 @@
       "refs": [
         {
           "file": "features/settings/ExternalApiSettingsCard.tsx",
-          "line": 40,
+          "line": 50,
           "column": 29
         }
       ]
@@ -3789,7 +3825,7 @@
       "refs": [
         {
           "file": "features/settings/ExternalApiSettingsCard.tsx",
-          "line": 52,
+          "line": 62,
           "column": 44
         }
       ]
@@ -4085,7 +4121,7 @@
         },
         {
           "file": "features/settings/ExternalApiSettingsCard.tsx",
-          "line": 41,
+          "line": 51,
           "column": 27
         },
         {
@@ -4489,7 +4525,7 @@
       "refs": [
         {
           "file": "features/settings/ExternalApiSettingsCard.tsx",
-          "line": 57,
+          "line": 72,
           "column": 18
         }
       ]
@@ -5168,6 +5204,18 @@
           "file": "features/settings/SettingsPage.tsx",
           "line": 158,
           "column": 7
+        }
+      ]
+    },
+    "d22d5fd54ca0aef5": {
+      "source": "复制密钥",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/ExternalApiSettingsCard.tsx",
+          "line": 67,
+          "column": 14
         }
       ]
     },
@@ -6532,7 +6580,7 @@
         },
         {
           "file": "features/settings/ExternalApiSettingsCard.tsx",
-          "line": 41,
+          "line": 51,
           "column": 15
         },
         {
