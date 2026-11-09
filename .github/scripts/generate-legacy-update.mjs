@@ -49,16 +49,29 @@ async function main() {
   }
 
   const platforms = {};
+  const missing = [];
   for (const [platform, suffix] of assetSpecs) {
     const filename = `cursor-byok-${version}-${platform}${suffix}`;
     const path = join(assetsDir, filename);
-    const info = await stat(path);
+    let info;
+    try {
+      info = await stat(path);
+    } catch {
+      missing.push(platform);
+      continue;
+    }
     if (!info.isFile()) throw new Error(`release asset is not a file: ${path}`);
     platforms[platform] = {
       url: `https://github.com/${repository}/releases/download/v${version}/${basename(path)}`,
       size: info.size,
       checksum: `sha256:${await sha256(path)}`,
     };
+  }
+  if (Object.keys(platforms).length === 0) {
+    throw new Error(`no release assets found in ${assetsDir}`);
+  }
+  if (missing.length > 0) {
+    console.log(`skipping platforms without an asset: ${missing.join(", ")}`);
   }
 
   const manifest = {
