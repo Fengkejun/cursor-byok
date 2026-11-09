@@ -145,7 +145,7 @@ jobs:
               if (wanted.includes("linux")) {
                 rows.push({ platform: "linux-x86_64", group: "linux", os: "ubuntu-22.04", args: "", target: "" });
               }
-              process.stdout.write(JSON.stringify(rows));
+              process.stdout.write(JSON.stringify({ include: rows }));
             '
           )
           echo "Building: ${matrix}"
@@ -172,8 +172,7 @@ jobs:
     if: needs.prepare.outputs.should_build == 'true'
     strategy:
       fail-fast: false
-      matrix:
-        include: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
 
     runs-on: ${{ matrix.os }}
 
