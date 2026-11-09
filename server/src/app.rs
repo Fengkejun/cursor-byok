@@ -20,8 +20,7 @@ use crate::{
     Result,
 };
 
-pub struct App {
-    config: Config,
+pub struct App {    config: Config,
     router: axum::Router,
     registry: TransportRegistry,
     harness: CursorHarness,
@@ -79,6 +78,7 @@ impl App {
             clients.clone(),
         )?;
         let harness = control.cursor_harness().clone();
+        spawn_model_refresher(control.clone());
         let mut router = api::router(registry.clone(), clients)?.merge(byok);
         router = match &config.console {
             Some(ConsoleSource::Directory(directory)) => {
@@ -173,6 +173,21 @@ impl App {
         }
         Ok(())
     }
+}
+
+/// Periodically re-reads provider model catalogs so vendor-side model churn reaches
+/// this app (and any tool it feeds) without manual action.
+fn spawn_model_refresher(control: control::ControlService) {
+    tokio::spawn(async move {
+        tokio::time::sleep(Duration::from_secs(45)).await;
+        loop {
+            match control.refresh_plugin_models().await {
+                Ok(count) => tracing::info!(models = count, "refreshed plugin model catalogs"),
+                Err(error) => tracing::warn!(%error, "periodic plugin model refresh failed"),
+            }
+            tokio::time::sleep(Duration::from_secs(6 * 60 * 60)).await;
+        }
+    });
 }
 
 async fn bind_service_listener(

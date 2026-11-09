@@ -20,6 +20,11 @@ export const ANTIGRAVITY_CLIENT_HEADERS: Record<string, string> = {};
 
 const ANTIGRAVITY_DENYLIST = new Set(["chat_20706", "chat_23310"]);
 
+/**
+ * Fallback catalog, used only when the provider cannot be asked for its live list.
+ * It deliberately keeps just the newest generation that currently answers; the live
+ * `fetchAvailableModels` response is authoritative so retired models never linger.
+ */
 export const STATIC_ANTIGRAVITY_MODELS: ModelDefinition[] = [
   // Gemini 3.8 Series
   {
@@ -50,143 +55,9 @@ export const STATIC_ANTIGRAVITY_MODELS: ModelDefinition[] = [
     maxOutputTokens: 65536,
     privateData: { reasoningEfforts: ["low", "medium", "high"] },
   },
-
-  // Gemini 3.7 Series
   {
-    id: "gemini-3.7-flash",
-    displayName: "Gemini 3.7 Flash",
-    capabilities: { images: true },
-    maxOutputTokens: 65536,
-    privateData: { reasoningEfforts: ["low", "medium", "high"] },
-  },
-  {
-    id: "gemini-3.7-flash-high",
-    displayName: "Gemini 3.7 Flash (High)",
-    capabilities: { images: true },
-    maxOutputTokens: 65536,
-    privateData: { reasoningEfforts: [] },
-  },
-  {
-    id: "gemini-3.7-flash-medium",
-    displayName: "Gemini 3.7 Flash (Medium)",
-    capabilities: { images: true },
-    maxOutputTokens: 65536,
-    privateData: { reasoningEfforts: [] },
-  },
-  {
-    id: "gemini-3.7-flash-low",
-    displayName: "Gemini 3.7 Flash (Low)",
-    capabilities: { images: true },
-    maxOutputTokens: 65536,
-    privateData: { reasoningEfforts: [] },
-  },
-  {
-    id: "gemini-3.7-flash-tiered",
-    displayName: "Gemini 3.7 Flash (Tiered)",
-    capabilities: { images: true },
-    maxOutputTokens: 65536,
-    privateData: { reasoningEfforts: [] },
-  },
-  {
-    id: "gemini-3.7-flash-thinking",
-    displayName: "Gemini 3.7 Flash (Thinking)",
-    capabilities: { images: true },
-    maxOutputTokens: 65536,
-    privateData: { reasoningEfforts: [] },
-  },
-
-  // Gemini 3.6 Series
-  {
-    id: "gemini-3.6-flash-high",
-    displayName: "Gemini 3.6 Flash (High)",
-    capabilities: { images: true },
-    maxOutputTokens: 65536,
-    privateData: { reasoningEfforts: [] },
-  },
-  {
-    id: "gemini-3.6-flash-medium",
-    displayName: "Gemini 3.6 Flash (Medium)",
-    capabilities: { images: true },
-    maxOutputTokens: 65536,
-    privateData: { reasoningEfforts: [] },
-  },
-  {
-    id: "gemini-3.6-flash-low",
-    displayName: "Gemini 3.6 Flash (Low)",
-    capabilities: { images: true },
-    maxOutputTokens: 65536,
-    privateData: { reasoningEfforts: [] },
-  },
-
-  // Gemini 3.1 Pro Series
-  {
-    id: "gemini-3.1-pro-preview",
-    displayName: "Gemini 3.1 Pro Preview",
-    capabilities: { images: true },
-    maxOutputTokens: 65536,
-    privateData: { reasoningEfforts: ["low", "medium", "high"] },
-  },
-  {
-    id: "gemini-3.1-pro-high",
-    displayName: "Gemini 3.1 Pro (High)",
-    capabilities: { images: true },
-    maxOutputTokens: 65536,
-    privateData: { reasoningEfforts: [] },
-  },
-  {
-    id: "gemini-3.1-pro-medium",
-    displayName: "Gemini 3.1 Pro (Medium)",
-    capabilities: { images: true },
-    maxOutputTokens: 65536,
-    privateData: { reasoningEfforts: [] },
-  },
-  {
-    id: "gemini-3.1-pro-low",
-    displayName: "Gemini 3.1 Pro (Low)",
-    capabilities: { images: true },
-    maxOutputTokens: 65536,
-    privateData: { reasoningEfforts: [] },
-  },
-
-  // Gemini 2.5 / 2.0 Series
-  {
-    id: "gemini-2.5-pro",
-    displayName: "Gemini 2.5 Pro",
-    capabilities: { images: true },
-    maxOutputTokens: 65536,
-    privateData: { reasoningEfforts: ["low", "medium", "high"] },
-  },
-  {
-    id: "gemini-2.5-flash",
-    displayName: "Gemini 2.5 Flash",
-    capabilities: { images: true },
-    maxOutputTokens: 65536,
-    privateData: { reasoningEfforts: ["low", "medium", "high"] },
-  },
-  {
-    id: "gemini-2.5-flash-thinking",
-    displayName: "Gemini 2.5 Flash Thinking",
-    capabilities: { images: true },
-    maxOutputTokens: 65536,
-    privateData: { reasoningEfforts: [] },
-  },
-  {
-    id: "gemini-2.5-flash-lite",
-    displayName: "Gemini 2.5 Flash Lite",
-    capabilities: { images: true },
-    maxOutputTokens: 65536,
-    privateData: { reasoningEfforts: [] },
-  },
-  {
-    id: "gemini-2.0-flash",
-    displayName: "Gemini 2.0 Flash",
-    capabilities: { images: true },
-    maxOutputTokens: 65536,
-    privateData: { reasoningEfforts: [] },
-  },
-  {
-    id: "gemini-2.0-flash-lite",
-    displayName: "Gemini 2.0 Flash Lite",
+    id: "gemini-3.1-flash-image",
+    displayName: "Gemini 3.1 Flash Image",
     capabilities: { images: true },
     maxOutputTokens: 65536,
     privateData: { reasoningEfforts: [] },
@@ -194,76 +65,53 @@ export const STATIC_ANTIGRAVITY_MODELS: ModelDefinition[] = [
 
   // Claude Series (via Antigravity)
   {
-    id: "claude-sonnet-4-6",
-    displayName: "Claude Sonnet 4.6 (Antigravity)",
+    id: "claude-opus-5-5-high",
+    displayName: "Claude Opus 5.5 (High)",
     capabilities: { images: true },
-    maxOutputTokens: 64000,
+    maxOutputTokens: 128000,
     privateData: { reasoningEfforts: ["low", "medium", "high"] },
   },
   {
-    id: "claude-sonnet-4-6-thinking",
-    displayName: "Claude Sonnet 4.6 Thinking (Antigravity)",
+    id: "claude-opus-5-5-medium",
+    displayName: "Claude Opus 5.5 (Medium)",
     capabilities: { images: true },
-    maxOutputTokens: 64000,
-    privateData: { reasoningEfforts: [] },
+    maxOutputTokens: 128000,
+    privateData: { reasoningEfforts: ["low", "medium", "high"] },
+  },
+  {
+    id: "claude-opus-5-5-low",
+    displayName: "Claude Opus 5.5 (Low)",
+    capabilities: { images: true },
+    maxOutputTokens: 128000,
+    privateData: { reasoningEfforts: ["low", "medium", "high"] },
+  },
+  {
+    id: "claude-sonnet-5-5-high",
+    displayName: "Claude Sonnet 5.5 (High)",
+    capabilities: { images: true },
+    maxOutputTokens: 128000,
+    privateData: { reasoningEfforts: ["low", "medium", "high"] },
+  },
+  {
+    id: "claude-sonnet-5-5-medium",
+    displayName: "Claude Sonnet 5.5 (Medium)",
+    capabilities: { images: true },
+    maxOutputTokens: 128000,
+    privateData: { reasoningEfforts: ["low", "medium", "high"] },
+  },
+  {
+    id: "claude-sonnet-5-5-low",
+    displayName: "Claude Sonnet 5.5 (Low)",
+    capabilities: { images: true },
+    maxOutputTokens: 128000,
+    privateData: { reasoningEfforts: ["low", "medium", "high"] },
   },
   {
     id: "claude-opus-4-6-thinking",
-    displayName: "Claude 3.7 Opus Thinking (Antigravity)",
+    displayName: "Claude Opus 4.6 Thinking (Antigravity)",
     capabilities: { images: true },
     maxOutputTokens: 64000,
     privateData: { reasoningEfforts: ["low", "medium", "high"] },
-  },
-  {
-    id: "claude-3-7-sonnet",
-    displayName: "Claude 3.7 Sonnet (Antigravity)",
-    capabilities: { images: true },
-    maxOutputTokens: 64000,
-    privateData: { reasoningEfforts: ["low", "medium", "high"] },
-  },
-  {
-    id: "claude-3-5-sonnet",
-    displayName: "Claude 3.5 Sonnet (Antigravity)",
-    capabilities: { images: true },
-    maxOutputTokens: 64000,
-    privateData: { reasoningEfforts: ["low", "medium", "high"] },
-  },
-  {
-    id: "claude-3-5-haiku",
-    displayName: "Claude 3.5 Haiku (Antigravity)",
-    capabilities: { images: true },
-    maxOutputTokens: 64000,
-    privateData: { reasoningEfforts: [] },
-  },
-
-  // Other Models
-  {
-    id: "gpt-4o",
-    displayName: "GPT-4o (Antigravity / Gemini)",
-    capabilities: { images: true },
-    maxOutputTokens: 65536,
-    privateData: { reasoningEfforts: ["low", "medium", "high"] },
-  },
-  {
-    id: "gpt-4o-mini",
-    displayName: "GPT-4o Mini (Antigravity / Gemini)",
-    capabilities: { images: true },
-    maxOutputTokens: 65536,
-    privateData: { reasoningEfforts: [] },
-  },
-  {
-    id: "gpt-oss-120b-medium",
-    displayName: "GPT OSS 120B Medium",
-    capabilities: { images: false },
-    maxOutputTokens: 32768,
-    privateData: { reasoningEfforts: [] },
-  },
-  {
-    id: "gemini-3.1-flash-image",
-    displayName: "Gemini 3.1 Flash Image",
-    capabilities: { images: true },
-    maxOutputTokens: 65536,
-    privateData: { reasoningEfforts: [] },
   },
 ];
 
@@ -275,6 +123,52 @@ function object(value: unknown): Record<string, unknown> | null {
 
 function text(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+/**
+ * Families Google keeps listing long after they are superseded. Only the newest
+ * generation inside each family is published, so the catalog follows the vendor
+ * without a code change: when 3.9 ships, 3.8 disappears on the next sync.
+ */
+const PUBLISHED_FAMILIES = new Set([
+  "gemini-flash",
+  "claude-opus",
+  "claude-sonnet",
+]);
+
+/** Splits `gemini-3.8-flash-high` / `claude-opus-5-5-medium` into family + version. */
+function familyOf(id: string): { family: string; version: number } | null {
+  const gemini = /^gemini-(\d+(?:\.\d+)?)-(flash(?:-image)?)(?:-(.+))?$/.exec(id);
+  if (gemini) {
+    return { family: `gemini-${gemini[2]}`, version: Number(gemini[1]) };
+  }
+  const claude = /^claude-(opus|sonnet)-(\d+)-(\d+)(?:-(.+))?$/.exec(id);
+  if (claude) {
+    return {
+      family: `claude-${claude[1]}`,
+      version: Number(`${claude[2]}.${claude[3]}`),
+    };
+  }
+  return null;
+}
+
+/**
+ * Drops retired generations, lite/pro previews, and anything outside the families
+ * this provider actually serves, keeping every variant of the newest generation.
+ */
+function newestGeneration(models: ModelDefinition[]): ModelDefinition[] {
+  const newest = new Map<string, number>();
+  for (const model of models) {
+    const parsed = familyOf(model.id);
+    if (!parsed || !PUBLISHED_FAMILIES.has(parsed.family)) continue;
+    const best = newest.get(parsed.family) ?? 0;
+    if (parsed.version > best) newest.set(parsed.family, parsed.version);
+  }
+  return models.filter((model) => {
+    const parsed = familyOf(model.id);
+    if (!parsed || !PUBLISHED_FAMILIES.has(parsed.family)) return false;
+    return parsed.version === newest.get(parsed.family);
+  });
 }
 
 export function parseAntigravityModels(payload: unknown): ModelDefinition[] {
@@ -312,15 +206,10 @@ export function parseAntigravityModels(payload: unknown): ModelDefinition[] {
     });
   }
 
-  // Merge static models from Antigravity catalog that might not be dynamically returned
-  for (const staticModel of STATIC_ANTIGRAVITY_MODELS) {
-    if (!seen.has(staticModel.id)) {
-      seen.add(staticModel.id);
-      models.push(staticModel);
-    }
-  }
-
-  return models;
+  // The live response is authoritative: retired models must disappear instead of
+  // being resurrected from the static fallback list, and only the newest generation
+  // of each published family is exposed.
+  return newestGeneration(models);
 }
 
 export function reasoningEfforts(model: ModelSnapshot): string[] {

@@ -640,6 +640,35 @@ impl ControlService {
         super::integrations::sync_applied(self).await
     }
 
+    /// Re-reads every provider's live model catalog so vendor-side additions and
+    /// retirements show up without the user pressing "sync" in the UI.
+    pub async fn refresh_plugin_models(&self) -> Result<usize> {
+        let mut total = 0;
+        for plugin in self.plugins().await {
+            for provider in plugin.providers.iter().filter(|item| item.has_models) {
+                match self
+                    .plugin_registry()
+                    .sync_models(&plugin.id, &provider.id)
+                    .await
+                {
+                    Ok(count) => total += count,
+                    Err(error) => tracing::warn!(
+                        %error,
+                        plugin = %plugin.id,
+                        provider = %provider.id,
+                        "plugin model refresh failed"
+                    ),
+                }
+            }
+        }
+        if total > 0 {
+            if let Err(error) = self.sync_integrations().await {
+                tracing::warn!(%error, "tool integration sync after model refresh failed");
+            }
+        }
+        Ok(total)
+    }
+
     pub async fn set_ports(&self, settings: PortSettings) -> Result<PortSettings> {
         self.store.set_port_settings(settings).await?;
         Ok(settings)

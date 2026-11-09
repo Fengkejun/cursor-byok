@@ -117,7 +117,9 @@ impl CursorHarness {
             && matches!(ca, CaState::Ready)
             && self.inner.backend_addr.read().is_some()
         {
-            self.enable().await?;
+            // A status poll must never stop the editor: it only makes sure the proxy is
+            // up. Restarting Cursor is reserved for an explicit takeover toggle.
+            self.ensure_proxy().await?;
         }
         let proxy = self.inner.proxy.lock().await;
         let proxy_url = proxy.url();
@@ -157,8 +159,15 @@ impl CursorHarness {
             self.inner.store.set_cursor_takeover_enabled(true).await?;
             self.enable().await?;
         } else {
+            // Clearing the managed proxy settings only takes effect after Cursor
+            // restarts, and doing so must not leave the user without a window.
+            let restart = process::RestartPlan::capture().await;
             self.inner.store.set_cursor_takeover_enabled(false).await?;
+            if let Err(error) = process::terminate_cursor().await {
+                tracing::warn!(%error, "could not terminate Cursor before clearing proxy settings");
+            }
             self.disable().await?;
+            restart.relaunch().await;
         }
         self.status().await
     }
@@ -169,6 +178,25 @@ impl CursorHarness {
         Ok(saved)
     }
 
+    /// Starts the proxy if needed and (re)applies the managed settings, without ever
+    /// stopping Cursor. Used by status polls and app start-up.
+    async fn ensure_proxy(&self) -> Result<()> {
+        if !matches!(self.inner.ca.state()?, CaState::Ready) {
+            return Err(Error::Config(
+                "initialize and trust the CA before enabling Cursor".into(),
+            ));
+        }
+        let backend_addr = self
+            .inner
+            .backend_addr
+            .read()
+            .ok_or_else(|| Error::Config("desktop management server is not ready".into()))?;
+        self.start_or_reuse_proxy(backend_addr).await
+    }
+
+    /// Applies the proxy configuration, restarting Cursor when it had to be stopped so
+    /// the freshly written `http.proxy` takes effect. The editor is only relaunched if
+    /// it was running before, so closing it by hand is never undone.
     async fn enable(&self) -> Result<()> {
         if !matches!(self.inner.ca.state()?, CaState::Ready) {
             return Err(Error::Config(
@@ -180,20 +208,39 @@ impl CursorHarness {
             .backend_addr
             .read()
             .ok_or_else(|| Error::Config("desktop management server is not ready".into()))?;
-        let mut proxy = self.inner.proxy.lock().await;
-        let settings_applied = proxy
-            .url()
-            .as_deref()
-            .map(settings::settings_match)
-            .transpose()?
-            .unwrap_or(false);
-        if !settings_applied {
-            // Terminating Cursor only makes the freshly written http.proxy take effect
-            // sooner; it is optional, so a failed probe or kill must not block takeover.
-            if let Err(error) = process::terminate_cursor().await {
-                tracing::warn!(%error, "could not terminate Cursor before applying proxy settings");
+        let restart = {
+            let proxy = self.inner.proxy.lock().await;
+            let settings_applied = proxy
+                .url()
+                .as_deref()
+                .map(settings::settings_match)
+                .transpose()?
+                .unwrap_or(false);
+            if settings_applied {
+                None
+            } else {
+                // Terminating Cursor only makes the freshly written http.proxy take
+                // effect sooner; it is optional, so a failed probe or kill must not
+                // block takeover.
+                let plan = process::RestartPlan::capture().await;
+                if let Err(error) = process::terminate_cursor().await {
+                    tracing::warn!(
+                        %error,
+                        "could not terminate Cursor before applying proxy settings"
+                    );
+                }
+                Some(plan)
             }
+        };
+        let result = self.start_or_reuse_proxy(backend_addr).await;
+        if let Some(plan) = restart {
+            plan.relaunch().await;
         }
+        result
+    }
+
+    async fn start_or_reuse_proxy(&self, backend_addr: SocketAddr) -> Result<()> {
+        let mut proxy = self.inner.proxy.lock().await;
         if proxy.running() {
             if let Some(url) = proxy.url() {
                 apply_cursor_configuration(&url).await?;
