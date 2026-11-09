@@ -23,6 +23,8 @@ use crate::{
 
 const CODEX_PROVIDER_ID: &str = "cursor-byok";
 const CODEX_PROVIDER_NAME: &str = "Cursor BYOK";
+/// Codex reads this catalog on every start, so the model picker follows the app.
+const CODEX_CATALOG_FILE: &str = "cursor-byok-model-catalog.json";
 const TOOL_CODEX: &str = "codex";
 const TOOL_CLAUDE: &str = "claude";
 
@@ -65,6 +67,7 @@ pub struct ApplyIntegrationInput {
 struct CodexPaths {
     config: PathBuf,
     auth: PathBuf,
+    catalog: PathBuf,
 }
 
 pub async fn overview(State(service): State<ControlService>) -> Result<Json<IntegrationsOverview>> {
@@ -124,7 +127,7 @@ pub async fn apply(
         }
     };
     match tool {
-        TOOL_CODEX => apply_codex(&originals, &model, &base_root, &api_key)?,
+        TOOL_CODEX => apply_codex(&originals, &model, &base_root, &api_key, &models)?,
         TOOL_CLAUDE => apply_claude(&originals, &model, &base_root, &api_key)?,
         _ => unreachable!(),
     }
@@ -162,6 +165,56 @@ pub async fn restore(
     Ok(Json(status))
 }
 
+/// Re-applies every taken-over tool after the model catalog changed, so tools that
+/// are already wired to this app pick the new list up on their next start without a
+/// manual refresh. A selected model that disappeared falls back to the first one.
+pub(crate) async fn sync_applied(service: &ControlService) -> Result<()> {
+    let state = service.store().integrations_state().await?;
+    if !state.codex.applied && !state.claude.applied {
+        return Ok(());
+    }
+    let external = service.store().external_api_settings().await?;
+    let api_key = external.api_key.trim().to_owned();
+    if !external.enabled || api_key.is_empty() {
+        return Ok(());
+    }
+    let models = byok::public_models(service.store(), service.plugin_registry()).await?;
+    let Some(fallback) = models.first().map(|model| model.id.clone()) else {
+        return Ok(());
+    };
+    let ports = service.store().port_settings().await?;
+    let base_root = format!("http://127.0.0.1:{}", ports.service_port);
+
+    let _guard = lock().lock().await;
+    let mut state = service.store().integrations_state().await?;
+    let mut changed = false;
+    for tool in [TOOL_CODEX, TOOL_CLAUDE] {
+        let (applied, current, originals) = {
+            let slot = slot_mut(&mut state, tool);
+            (slot.applied, slot.model.clone(), slot.originals.clone())
+        };
+        if !applied || originals.is_empty() {
+            continue;
+        }
+        let model = if models.iter().any(|item| item.id == current) {
+            current
+        } else {
+            fallback.clone()
+        };
+        match tool {
+            TOOL_CODEX => apply_codex(&originals, &model, &base_root, &api_key, &models)?,
+            TOOL_CLAUDE => apply_claude(&originals, &model, &base_root, &api_key)?,
+            _ => unreachable!(),
+        }
+        slot_mut(&mut state, tool).model = model;
+        changed = true;
+    }
+    if changed {
+        service.store().set_integrations_state(&state).await?;
+    }
+    Ok(())
+}
+
 fn normalize_tool(tool: &str) -> Result<&'static str> {
     match tool.trim().to_ascii_lowercase().as_str() {
         "codex" => Ok(TOOL_CODEX),
@@ -193,6 +246,7 @@ fn codex_paths() -> Result<CodexPaths> {
     Ok(CodexPaths {
         config: directory.join("config.toml"),
         auth: directory.join("auth.json"),
+        catalog: directory.join(CODEX_CATALOG_FILE),
     })
 }
 
@@ -330,6 +384,7 @@ fn capture_originals(tool: &str) -> Result<Vec<SavedConfigFile>> {
             Ok(vec![
                 read_optional(&paths.config)?,
                 read_optional(&paths.auth)?,
+                read_optional(&paths.catalog)?,
             ])
         }
         TOOL_CLAUDE => Ok(vec![
@@ -345,19 +400,77 @@ fn apply_codex(
     model: &str,
     base_root: &str,
     api_key: &str,
+    models: &[byok::PublicModel],
 ) -> Result<()> {
     let paths = codex_paths()?;
     let current = read_text_optional(&paths.config)?
         .or_else(|| originals.first().map(|file| file.content.clone()))
         .unwrap_or_default();
     let base_url = format!("{base_root}/byok/v1");
-    let rendered = render_codex_config(&current, model, &base_url);
+    let catalog = codex_catalog(models);
+    let rendered = render_codex_config(
+        &current,
+        model,
+        &base_url,
+        catalog.as_ref().map(|_| CODEX_CATALOG_FILE),
+    );
     write_file(&paths.config, &rendered)?;
     let auth = format!(
         "{{\n  \"OPENAI_API_KEY\": {}\n}}\n",
         serde_json::to_string(api_key)?
     );
-    write_file(&paths.auth, &auth)
+    write_file(&paths.auth, &auth)?;
+    if let Some(catalog) = catalog {
+        write_file(&paths.catalog, &catalog)?;
+    }
+    Ok(())
+}
+
+/// Builds a Codex model catalog from one of the full-format entries Codex keeps in
+/// its own cache. Codex validates every entry, so a hand-written minimal object is
+/// rejected ("invalid data"); cloning its own entry keeps the shape valid.
+fn codex_catalog(models: &[byok::PublicModel]) -> Option<String> {
+    let template = codex_catalog_template()?;
+    let entries: Vec<Value> = models
+        .iter()
+        .map(|model| {
+            let mut entry = template.clone();
+            if let Some(object) = entry.as_object_mut() {
+                object.insert("slug".into(), Value::String(model.id.clone()));
+                object.insert("display_name".into(), Value::String(model.name.clone()));
+                object.insert("description".into(), Value::String(model.name.clone()));
+                object.insert("visibility".into(), Value::String("list".into()));
+            }
+            entry
+        })
+        .collect();
+    let document = serde_json::json!({ "models": entries });
+    serde_json::to_string_pretty(&document).ok()
+}
+
+fn codex_catalog_template() -> Option<Value> {
+    let home = home_dir().ok()?;
+    let candidates = [
+        home.join(".codex").join("models_cache.json"),
+        home.join(".codex").join("cc-switch-model-catalog.json"),
+    ];
+    for path in candidates {
+        let Ok(text) = std::fs::read_to_string(&path) else {
+            continue;
+        };
+        let Ok(value) = serde_json::from_str::<Value>(&text) else {
+            continue;
+        };
+        let Some(entries) = value.get("models").and_then(Value::as_array) else {
+            continue;
+        };
+        if let Some(entry) = entries.iter().find(|entry| {
+            entry.get("slug").is_some() && entry.get("model_messages").is_some()
+        }) {
+            return Some(entry.clone());
+        }
+    }
+    None
 }
 
 fn apply_claude(
@@ -495,13 +608,19 @@ fn strip_section(content: &str, header: &str) -> String {
     output.join("\n")
 }
 
-fn render_codex_config(content: &str, model: &str, base_url: &str) -> String {
+fn render_codex_config(
+    content: &str,
+    model: &str,
+    base_url: &str,
+    catalog_file: Option<&str>,
+) -> String {
     let content = strip_section(content, "[model_providers.cursor-byok]");
     let mut lines: Vec<String> = Vec::new();
     let mut in_table = false;
     let mut have_model = false;
     let mut have_provider = false;
     let mut have_auth = false;
+    let mut have_catalog = catalog_file.is_none();
     for line in content.lines() {
         let trimmed = line.trim();
         if trimmed.starts_with('[') {
@@ -526,6 +645,14 @@ fn render_codex_config(content: &str, model: &str, base_url: &str) -> String {
                     have_auth = true;
                     continue;
                 }
+                Some("model_catalog_json") => {
+                    match catalog_file {
+                        Some(file) => lines.push(format!("model_catalog_json = {}", quote(file))),
+                        None => continue,
+                    }
+                    have_catalog = true;
+                    continue;
+                }
                 _ => {}
             }
         }
@@ -544,6 +671,11 @@ fn render_codex_config(content: &str, model: &str, base_url: &str) -> String {
     }
     if !have_auth {
         missing.push("preferred_auth_method = \"apikey\"".into());
+    }
+    if !have_catalog {
+        if let Some(file) = catalog_file {
+            missing.push(format!("model_catalog_json = {}", quote(file)));
+        }
     }
     for (offset, line) in missing.into_iter().enumerate() {
         lines.insert(insert_at + offset, line);
@@ -623,10 +755,14 @@ command = "npx"
             original,
             "plugin:example:codex/gpt-6.1-sol",
             "http://127.0.0.1:61702/byok/v1",
+            Some(CODEX_CATALOG_FILE),
         );
         assert!(rendered.contains("model = \"plugin:example:codex/gpt-6.1-sol\""));
         assert!(rendered.contains("model_provider = \"cursor-byok\""));
         assert!(rendered.contains("preferred_auth_method = \"apikey\""));
+        assert!(rendered.contains(&format!(
+            "model_catalog_json = \"{CODEX_CATALOG_FILE}\""
+        )));
         assert!(rendered.contains("[model_providers.custom]"));
         assert!(rendered.contains("[mcp_servers.firecrawl]"));
         assert!(rendered.contains("[model_providers.cursor-byok]"));
@@ -645,10 +781,28 @@ base_url = "http://127.0.0.1:1/byok/v1"
 [other]
 key = "value"
 "#;
-        let rendered = render_codex_config(original, "b", "http://127.0.0.1:2/byok/v1");
+        let rendered = render_codex_config(original, "b", "http://127.0.0.1:2/byok/v1", None);
         assert_eq!(rendered.matches("[model_providers.cursor-byok]").count(), 1);
         assert!(rendered.contains("http://127.0.0.1:2/byok/v1"));
         assert!(rendered.contains("[other]"));
+    }
+
+    #[test]
+    fn codex_catalog_clones_the_codex_entry_shape() {
+        let models = vec![byok::PublicModel {
+            id: "codex/gpt-6.1-sol".into(),
+            name: "GPT 6.1 Sol".into(),
+        }];
+        // No Codex cache on a clean machine: the catalog is simply skipped.
+        if codex_catalog_template().is_some() {
+            let catalog = codex_catalog(&models).expect("catalog");
+            let value: Value = serde_json::from_str(&catalog).unwrap();
+            let entry = &value["models"][0];
+            assert_eq!(entry["slug"], "codex/gpt-6.1-sol");
+            assert_eq!(entry["display_name"], "GPT 6.1 Sol");
+            assert_eq!(entry["visibility"], "list");
+            assert!(entry.get("model_messages").is_some());
+        }
     }
 
     #[test]

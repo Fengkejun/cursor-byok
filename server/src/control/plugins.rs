@@ -119,6 +119,7 @@ pub async fn sync_models(
     Path((plugin_id, provider_id)): Path<(String, String)>,
 ) -> Result<Json<serde_json::Value>> {
     let count = service.plugin_sync_models(&plugin_id, &provider_id).await?;
+    sync_integrations(&service).await;
     Ok(Json(serde_json::json!({ "models": count })))
 }
 
@@ -138,7 +139,16 @@ pub async fn set_model_enabled(
     service
         .plugin_set_model_enabled(&plugin_id, &provider_id, model_id, enabled)
         .await?;
+    sync_integrations(&service).await;
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Keeps Codex/Claude configs aligned with the visible model list; failures are
+/// logged instead of failing the plugin operation that triggered the sync.
+async fn sync_integrations(service: &ControlService) {
+    if let Err(error) = service.sync_integrations().await {
+        tracing::warn!(%error, "tool integration sync failed");
+    }
 }
 
 pub async fn runtime_status(

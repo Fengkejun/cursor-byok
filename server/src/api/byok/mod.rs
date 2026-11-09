@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use axum::{
     extract::State,
-    http::{header, HeaderMap, StatusCode},
+    http::{header, HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
@@ -128,7 +128,18 @@ async fn list_models(State(state): State<ApiState>, headers: HeaderMap) -> Respo
         return *error;
     }
     match models::list(&state.store, &state.plugins).await {
-        Ok(models) => Json(models::response(&models)).into_response(),
+        Ok(models) => {
+            // The list is derived from the live store, so a client that re-fetches
+            // must never see a stale cached copy after a model is added or removed.
+            let mut response = Json(models::response(&models)).into_response();
+            let headers = response.headers_mut();
+            headers.insert(
+                header::CACHE_CONTROL,
+                HeaderValue::from_static("no-store, max-age=0"),
+            );
+            headers.insert(header::PRAGMA, HeaderValue::from_static("no-cache"));
+            response
+        }
         Err(error) => api_error(StatusCode::CONFLICT, error),
     }
 }

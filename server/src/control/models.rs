@@ -34,10 +34,9 @@ pub async fn create(
     State(service): State<ControlService>,
     Json(input): Json<SaveModels>,
 ) -> Result<(StatusCode, Json<Vec<ModelConfig>>)> {
-    Ok((
-        StatusCode::CREATED,
-        Json(service.create_models(&input.models).await?),
-    ))
+    let models = service.create_models(&input.models).await?;
+    sync_integrations(&service).await;
+    Ok((StatusCode::CREATED, Json(models)))
 }
 
 pub async fn reorder(
@@ -52,6 +51,7 @@ pub async fn remove(
     Path(model_hash): Path<String>,
 ) -> Result<StatusCode> {
     service.delete_model(&model_hash).await?;
+    sync_integrations(&service).await;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -60,7 +60,17 @@ pub async fn update(
     Path(model_hash): Path<String>,
     Json(input): Json<ModelConfigInput>,
 ) -> Result<Json<ModelConfig>> {
-    Ok(Json(service.update_model(&model_hash, &input).await?))
+    let model = service.update_model(&model_hash, &input).await?;
+    sync_integrations(&service).await;
+    Ok(Json(model))
+}
+
+/// Keeps Codex/Claude configs aligned with the model list; a failure here must not
+/// fail the model edit itself, so it is only logged.
+async fn sync_integrations(service: &ControlService) {
+    if let Err(error) = service.sync_integrations().await {
+        tracing::warn!(%error, "tool integration sync failed");
+    }
 }
 
 pub async fn test(

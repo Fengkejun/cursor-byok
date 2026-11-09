@@ -138,6 +138,76 @@ Deno.test("provider parses usage metadata including cachedContentTokenCount as c
   ]);
 });
 
+Deno.test("numeric tool enums are moved into the description for Google", async () => {
+  let requestBody = "";
+  const base = request();
+  await antigravityProvider.invoke(
+    {
+      model: {
+        id: "gemini-3.7-flash-medium",
+        displayName: "Gemini 3.7 Flash Medium",
+        privateData: {},
+      },
+      resource: snapshot({
+        accessToken: "mock-access-token",
+        refreshToken: "mock-refresh-token",
+        expiresAt: Date.now() + 3600_000,
+        projectId: "test-project-123",
+      }),
+      request: {
+        ...base,
+        tools: [
+          {
+            name: "set_count",
+            description: "Set the count",
+            parameters: {
+              type: "object",
+              properties: {
+                count: { type: "integer", enum: [1, 2, 3], description: "count value" },
+                mode: { type: "string", enum: ["fast", "slow"] },
+              },
+              required: ["count"],
+            },
+          },
+        ],
+      },
+    },
+    { emit: () => {} },
+    context({
+      stream: (_url, init) => {
+        requestBody = init?.body ?? "";
+        return {
+          status: 200,
+          headers: {},
+          lines: sse([
+            'data: {"response":{"candidates":[{"content":{"parts":[{"text":"ok"}]}}]}}',
+            'data: {"response":{"candidates":[{"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":1,"candidatesTokenCount":1,"totalTokenCount":2}}}',
+          ]),
+        };
+      },
+    }),
+  );
+
+  const body = JSON.parse(requestBody) as {
+    request: {
+      tools: Array<{
+        functionDeclarations: Array<{
+          parameters: {
+            properties: Record<string, { enum?: unknown; description?: string }>;
+          };
+        }>;
+      }>;
+    };
+  };
+  const params = body.request.tools[0].functionDeclarations[0].parameters;
+  assertEquals(params.properties.count.enum, undefined);
+  assert(
+    (params.properties.count.description ?? "").includes("Allowed values: 1, 2, 3"),
+    "numeric enum values were not preserved in the description",
+  );
+  assertEquals(params.properties.mode.enum, ["fast", "slow"]);
+});
+
 Deno.test("isQuotaError identifies rate limits and quota exhaustion", () => {
   assert(isQuotaError("RESOURCE_EXHAUSTED: quota exceeded"));
   assert(isQuotaError("Rate limit exceeded for model"));

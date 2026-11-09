@@ -635,6 +635,11 @@ impl ControlService {
         self.store.set_external_api_settings(settings).await
     }
 
+    /// Rewrites taken-over tool configs after the visible model list changed.
+    pub async fn sync_integrations(&self) -> Result<()> {
+        super::integrations::sync_applied(self).await
+    }
+
     pub async fn set_ports(&self, settings: PortSettings) -> Result<PortSettings> {
         self.store.set_port_settings(settings).await?;
         Ok(settings)

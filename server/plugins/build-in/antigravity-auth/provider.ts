@@ -190,11 +190,40 @@ function enforceUppercaseTypes(value: unknown): unknown {
   return out;
 }
 
+// Google's Schema.enum is a list of strings; numeric/boolean enum values make
+// the API reject the whole tool declaration with
+// "Invalid value at '...enum[0]' (TYPE_STRING)". Numeric enums cannot be
+// expressed, so keep their allowed values in the description instead.
+function normalizeEnums(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(normalizeEnums);
+  if (value === null || typeof value !== "object") return value;
+  const source = value as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(source)) {
+    if (key === "enum" && Array.isArray(child)) {
+      if (child.every((item) => typeof item === "string")) {
+        out[key] = child;
+      } else if (source.type === "STRING") {
+        out[key] = child.map((item) => String(item));
+      } else {
+        const allowed = child.map((item) => String(item)).join(", ");
+        const description = typeof source.description === "string" ? source.description.trim() : "";
+        out.description = description
+          ? `${description} (Allowed values: ${allowed})`
+          : `Allowed values: ${allowed}`;
+      }
+    } else {
+      out[key] = normalizeEnums(child);
+    }
+  }
+  return out;
+}
+
 function sanitizeSchema(value: unknown): unknown {
   if (!value || typeof value !== "object") {
     return { type: "OBJECT", properties: {} };
   }
-  const clean = enforceUppercaseTypes(value) as Record<string, unknown>;
+  const clean = normalizeEnums(enforceUppercaseTypes(value)) as Record<string, unknown>;
   if (!clean.type) clean.type = "OBJECT";
   return clean;
 }
