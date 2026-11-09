@@ -160,10 +160,21 @@ pub fn decode(request: &ai::BidiAppendRequest) -> Result<DecodedAppend> {
         .map(|id| id.request_id.as_str())
         .filter(|id| !id.is_empty())
         .ok_or_else(|| Error::Protocol("BidiAppend request_id is required".into()))?;
+    // Cursor switches to `data_binary` for large payloads (image attachments and
+    // long histories). It carries the same AgentClientMessage as the hex `data`
+    // field, so decode whichever one is present instead of rejecting the request.
     if !request.data_binary.is_empty() {
-        return Err(Error::Protocol(
-            "BidiAppend data_binary is not part of the captured protocol".into(),
-        ));
+        let message = agent::AgentClientMessage::decode(request.data_binary.as_slice())
+            .map_err(|error| {
+                Error::Protocol(format!(
+                    "BidiAppend data_binary is not an AgentClientMessage: {error}"
+                ))
+            })?;
+        return Ok(DecodedAppend {
+            request_id: request_id.into(),
+            seqno: request.append_seqno,
+            message,
+        });
     }
     if request.data.is_empty() {
         return Err(Error::Protocol(
@@ -208,4 +219,67 @@ pub async fn append(
         })
         .await?;
     Ok(ai::BidiAppendResponse {})
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn append_request(data: &str, data_binary: Vec<u8>) -> ai::BidiAppendRequest {
+        ai::BidiAppendRequest {
+            data: data.into(),
+            request_id: Some(ai::BidiRequestId {
+                request_id: "req-1".into(),
+            }),
+            append_seqno: 3,
+            data_binary,
+        }
+    }
+
+    fn run_request(model_id: &str) -> agent::AgentClientMessage {
+        agent::AgentClientMessage {
+            message: Some(agent::agent_client_message::Message::RunRequest(
+                agent::AgentRunRequest {
+                    requested_model: Some(agent::RequestedModel {
+                        model_id: model_id.into(),
+                        ..Default::default()
+                    }),
+                    conversation_id: Some("conversation-1".into()),
+                    ..Default::default()
+                },
+            )),
+        }
+    }
+
+    #[test]
+    fn decodes_hex_data_payloads() {
+        let message = run_request("plugin:example:codex/gpt-6.1-sol");
+        let hex_payload = hex::encode(message.encode_to_vec());
+        let decoded = decode(&append_request(&hex_payload, Vec::new())).expect("decode");
+        assert_eq!(decoded.model_id(), Some("plugin:example:codex/gpt-6.1-sol"));
+        assert_eq!(decoded.seqno, 3);
+        assert_eq!(decoded.conversation_id(), Some("conversation-1"));
+    }
+
+    #[test]
+    fn decodes_binary_payloads_used_for_large_requests() {
+        // Cursor sends `data_binary` instead of hex `data` once a payload grows,
+        // for example when the message carries an image attachment.
+        let message = run_request("antigravity/claude-sonnet-5-5-high");
+        let decoded =
+            decode(&append_request("", message.encode_to_vec())).expect("decode binary payload");
+        assert_eq!(
+            decoded.model_id(),
+            Some("antigravity/claude-sonnet-5-5-high")
+        );
+        assert_eq!(decoded.request_id, "req-1");
+    }
+
+    #[test]
+    fn prefers_binary_payload_when_both_are_present() {
+        let message = run_request("binary/model");
+        let request = append_request(&hex::encode(run_request("hex/model").encode_to_vec()), message.encode_to_vec());
+        let decoded = decode(&request).expect("decode");
+        assert_eq!(decoded.model_id(), Some("binary/model"));
+    }
 }
