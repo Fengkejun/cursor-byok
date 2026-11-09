@@ -99,6 +99,18 @@
         }
       ]
     },
+    "0407dbdaf0dd84d9": {
+      "source": "打开系统设置",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 86,
+          "column": 10
+        }
+      ]
+    },
     "051836569928a9f9": {
       "source": "编辑",
       "kind": "text",
@@ -177,6 +189,20 @@
           "file": "features/calls/CallDetails.tsx",
           "line": 71,
           "column": 54
+        }
+      ]
+    },
+    "05906e6263bf6259": {
+      "source": "共 {count} 个（含插件模型）",
+      "kind": "template",
+      "placeholders": [
+        "count"
+      ],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 118,
+          "column": 18
         }
       ]
     },
@@ -481,6 +507,18 @@
           "file": "features/models/CursorModelTestResult.tsx",
           "line": 21,
           "column": 95
+        }
+      ]
+    },
+    "11f697854d80177f": {
+      "source": "未检测到该工具",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 168,
+          "column": 63
         }
       ]
     },
@@ -852,6 +890,11 @@
       "placeholders": [],
       "refs": [
         {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 172,
+          "column": 16
+        },
+        {
           "file": "features/models/LegacyModelImport.tsx",
           "line": 65,
           "column": 20
@@ -1018,6 +1061,18 @@
           "file": "features/models/CursorModelEditor.tsx",
           "line": 159,
           "column": 42
+        }
+      ]
+    },
+    "283a7f514f66bd17": {
+      "source": "当前配置",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 176,
+          "column": 16
         }
       ]
     },
@@ -1188,6 +1243,18 @@
           "file": "features/home/metrics/HomeMetrics.tsx",
           "line": 81,
           "column": 5
+        }
+      ]
+    },
+    "2dc1d402d81951e5": {
+      "source": "恢复原始配置",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 155,
+          "column": 10
         }
       ]
     },
@@ -2098,13 +2165,18 @@
       "placeholders": [],
       "refs": [
         {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 166,
+          "column": 29
+        },
+        {
           "file": "features/models/CursorSettingsPage.tsx",
           "line": 306,
           "column": 68
         },
         {
           "file": "shell/AppLayout.tsx",
-          "line": 62,
+          "line": 63,
           "column": 51
         }
       ]
@@ -2474,6 +2546,18 @@
         }
       ]
     },
+    "60ed5e6404264476": {
+      "source": "Anthropic 兼容地址",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 113,
+          "column": 18
+        }
+      ]
+    },
     "61a4c7bac12dc125": {
       "source": "异常调用：{count}",
       "kind": "template",
@@ -2586,7 +2670,7 @@
       "refs": [
         {
           "file": "shared/api.ts",
-          "line": 521,
+          "line": 544,
           "column": 43
         }
       ]
@@ -2737,7 +2821,7 @@
       "refs": [
         {
           "file": "shell/AppLayout.tsx",
-          "line": 37,
+          "line": 38,
           "column": 47
         }
       ]
@@ -2882,6 +2966,18 @@
         }
       ]
     },
+    "7491307908840209": {
+      "source": "可选择本项目已配置的模型，以及插件提供的模型额度。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 179,
+          "column": 44
+        }
+      ]
+    },
     "77c9e582e85583af": {
       "source": "测试失败",
       "kind": "text",
@@ -2925,7 +3021,7 @@
       "refs": [
         {
           "file": "shared/api.ts",
-          "line": 516,
+          "line": 539,
           "column": 43
         }
       ]
@@ -3004,7 +3100,7 @@
       "refs": [
         {
           "file": "App.tsx",
-          "line": 62,
+          "line": 64,
           "column": 21
         }
       ]
@@ -3018,6 +3114,18 @@
           "file": "features/settings/SettingsPage.tsx",
           "line": 143,
           "column": 83
+        }
+      ]
+    },
+    "7e275b4cf42518a1": {
+      "source": "未读取到",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 150,
+          "column": 7
         }
       ]
     },
@@ -3103,7 +3211,7 @@
       "refs": [
         {
           "file": "shared/api.ts",
-          "line": 460,
+          "line": 483,
           "column": 21
         }
       ]
@@ -3117,6 +3225,20 @@
           "file": "features/plugins/PluginManagementPage.tsx",
           "line": 105,
           "column": 25
+        }
+      ]
+    },
+    "82ed33f9a490823e": {
+      "source": "已恢复 {name} 的原始配置",
+      "kind": "template",
+      "placeholders": [
+        "name"
+      ],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 61,
+          "column": 15
         }
       ]
     },
@@ -3241,6 +3363,18 @@
           "file": "features/plugins/PluginResourcePanels.tsx",
           "line": 274,
           "column": 33
+        }
+      ]
+    },
+    "8704ec67d35d2689": {
+      "source": "可代理模型",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 117,
+          "column": 18
         }
       ]
     },
@@ -3432,6 +3566,18 @@
         }
       ]
     },
+    "91902d655e0c8a38": {
+      "source": "外部 API 尚未就绪",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 82,
+          "column": 18
+        }
+      ]
+    },
     "919cb0ce0c8db4e7": {
       "source": "留空表示保留当前密码",
       "kind": "text",
@@ -3500,13 +3646,18 @@
       "placeholders": [],
       "refs": [
         {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 166,
+          "column": 40
+        },
+        {
           "file": "features/models/CursorSettingsPage.tsx",
           "line": 306,
           "column": 79
         },
         {
           "file": "shell/AppLayout.tsx",
-          "line": 62,
+          "line": 63,
           "column": 62
         }
       ]
@@ -4273,12 +4424,12 @@
         },
         {
           "file": "shell/AppLayout.tsx",
-          "line": 74,
+          "line": 75,
           "column": 64
         },
         {
           "file": "shell/AppLayout.tsx",
-          "line": 74,
+          "line": 75,
           "column": 125
         }
       ]
@@ -4340,6 +4491,18 @@
           "file": "features/settings/ExternalApiSettingsCard.tsx",
           "line": 57,
           "column": 18
+        }
+      ]
+    },
+    "b19d0bd550f4b890": {
+      "source": "密钥、开关与更多参数在「系统设置 → 外部 API」中管理。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 120,
+          "column": 17
         }
       ]
     },
@@ -4760,6 +4923,23 @@
         }
       ]
     },
+    "c671621730d83a68": {
+      "source": "接管后的模型",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 179,
+          "column": 25
+        },
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 180,
+          "column": 60
+        }
+      ]
+    },
     "c6e7e1a9da356efc": {
       "source": "还没有资源，请先添加。",
       "kind": "text",
@@ -4912,6 +5092,20 @@
         }
       ]
     },
+    "cf9ef58580813851": {
+      "source": "已接管 {name}，重启对应工具后生效",
+      "kind": "template",
+      "placeholders": [
+        "name"
+      ],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 48,
+          "column": 15
+        }
+      ]
+    },
     "cfae1a14d2120c57": {
       "source": "详细模式",
       "kind": "text",
@@ -5040,6 +5234,11 @@
       "kind": "text",
       "placeholders": [],
       "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 159,
+          "column": 17
+        },
         {
           "file": "features/models/CursorSettingsPage.tsx",
           "line": 341,
@@ -5181,7 +5380,7 @@
       "refs": [
         {
           "file": "shell/AppLayout.tsx",
-          "line": 42,
+          "line": 43,
           "column": 54
         }
       ]
@@ -5345,7 +5544,7 @@
         },
         {
           "file": "shell/AppLayout.tsx",
-          "line": 35,
+          "line": 36,
           "column": 29
         }
       ]
@@ -5739,6 +5938,18 @@
         }
       ]
     },
+    "ec09216beab4a1e9": {
+      "source": "接管工具前需要先开启外部 API 并设置密钥，模型请求会通过它转发。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 83,
+          "column": 17
+        }
+      ]
+    },
     "ec917db99e814b58": {
       "source": "{label}必须是非负数",
       "kind": "template",
@@ -5861,6 +6072,18 @@
         }
       ]
     },
+    "f4c4e547e7bb6e8b": {
+      "source": "在其他工具中使用",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 106,
+          "column": 24
+        }
+      ]
+    },
     "f4dcb6a3ceb32247": {
       "source": "第 {page} / {count} 页",
       "kind": "template",
@@ -5948,7 +6171,7 @@
         },
         {
           "file": "shell/AppLayout.tsx",
-          "line": 36,
+          "line": 37,
           "column": 46
         }
       ]
@@ -5976,6 +6199,28 @@
           "file": "features/home/overview/OverviewTimeRangeFilter.tsx",
           "line": 41,
           "column": 35
+        }
+      ]
+    },
+    "f817af25001a45ba": {
+      "source": "工具接入",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 71,
+          "column": 32
+        },
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 125,
+          "column": 30
+        },
+        {
+          "file": "shell/AppLayout.tsx",
+          "line": 35,
+          "column": 51
         }
       ]
     },
@@ -6017,6 +6262,18 @@
         }
       ]
     },
+    "f9825c229e020578": {
+      "source": "接管配置",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 159,
+          "column": 29
+        }
+      ]
+    },
     "f9aa11dbb15ce647": {
       "source": "周六",
       "kind": "text",
@@ -6038,6 +6295,18 @@
           "file": "features/calls/CallDetails.tsx",
           "line": 65,
           "column": 44
+        }
+      ]
+    },
+    "fa03ae59e174e5d3": {
+      "source": "OpenAI 兼容地址",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 109,
+          "column": 18
         }
       ]
     },
@@ -6108,6 +6377,18 @@
           "file": "features/models/CursorGates.tsx",
           "line": 20,
           "column": 54
+        }
+      ]
+    },
+    "fbfd59c29848bd21": {
+      "source": "正在读取本机工具配置…",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 74,
+          "column": 49
         }
       ]
     },

@@ -23,6 +23,28 @@ use crate::{
 use self::protocol::Protocol;
 pub use direct::NativeForwarder;
 
+/// A model identifier exposed to external tools.
+#[derive(Clone, Debug, serde::Serialize)]
+pub struct PublicModel {
+    pub id: String,
+    pub name: String,
+}
+
+/// Lists the models that external tools may request through `/byok/v1`.
+pub async fn public_models(
+    store: &Store,
+    plugins: &PluginRegistry,
+) -> crate::Result<Vec<PublicModel>> {
+    Ok(models::list(store, plugins)
+        .await?
+        .into_iter()
+        .map(|model| PublicModel {
+            id: model.public_id,
+            name: model.display_name,
+        })
+        .collect())
+}
+
 #[derive(Clone)]
 struct ApiState {
     store: Store,

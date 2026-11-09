@@ -1,6 +1,7 @@
 //! Exposes the local control API.
 mod calls;
 mod harness;
+mod integrations;
 mod models;
 mod overview;
 mod plugins;
@@ -225,6 +226,18 @@ pub fn api_router(service: ControlService) -> Router {
         .route(
             "/__byok-api__/api/harness/cursor/enabled",
             put(harness::set_enabled),
+        )
+        .route(
+            "/__byok-api__/api/integrations",
+            get(integrations::overview),
+        )
+        .route(
+            "/__byok-api__/api/integrations/{tool}/apply",
+            post(integrations::apply),
+        )
+        .route(
+            "/__byok-api__/api/integrations/{tool}/restore",
+            post(integrations::restore),
         )
         .with_state(service)
         .layer(desktop_cors())

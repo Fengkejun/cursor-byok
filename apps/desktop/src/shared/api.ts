@@ -117,6 +117,29 @@ export interface ExternalApiSettings {
   api_key: string;
 }
 
+export interface IntegrationToolStatus {
+  tool: string;
+  label: string;
+  installed: boolean;
+  config_path: string;
+  applied: boolean;
+  model: string;
+  applied_at_ms: number;
+  backup_available: boolean;
+  current_model: string;
+  current_provider: string;
+  notes: string[];
+}
+
+export interface IntegrationsOverview {
+  codex: IntegrationToolStatus;
+  claude: IntegrationToolStatus;
+  external_api_enabled: boolean;
+  has_api_key: boolean;
+  base_url: string;
+  models: Array<{ id: string; name: string }>;
+}
+
 export interface StatisticsStorage {
   call_count: number;
   trace_count: number;
@@ -537,6 +560,9 @@ export const api = {
   setPorts: (settings: PortSettings) => request<PortSettings>("/settings/ports", { method: "PUT", body: JSON.stringify(settings) }),
   externalApiSettings: () => request<ExternalApiSettings>("/settings/external-api"),
   setExternalApiSettings: (settings: ExternalApiSettings) => request<ExternalApiSettings>("/settings/external-api", { method: "PUT", body: JSON.stringify(settings) }),
+  integrations: () => request<IntegrationsOverview>("/integrations"),
+  applyIntegration: (tool: string, model: string) => request<IntegrationToolStatus>(`/integrations/${encodeURIComponent(tool)}/apply`, { method: "POST", body: JSON.stringify({ model }) }),
+  restoreIntegration: (tool: string) => request<IntegrationToolStatus>(`/integrations/${encodeURIComponent(tool)}/restore`, { method: "POST" }),
   statisticsStorage: () => request<StatisticsStorage>("/settings/storage/statistics"),
   clearStatisticsStorage: (scope: StatisticsStorageScope) => request<StatisticsStorage>("/settings/storage/statistics", { method: "DELETE", body: JSON.stringify({ scope }) }),
   proxySettings: () => request<ProxySettings>("/settings/proxy"),

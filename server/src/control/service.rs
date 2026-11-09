@@ -703,6 +703,14 @@ impl ControlService {
     ) -> Result<TokenPricingSettings> {
         self.store.set_pricing_settings(settings).await
     }
+
+    pub(crate) fn store(&self) -> &Store {
+        &self.store
+    }
+
+    pub(crate) fn plugin_registry(&self) -> &PluginRegistry {
+        &self.plugins
+    }
 }
 
 fn call_route(run_id: &str) -> &'static str {
