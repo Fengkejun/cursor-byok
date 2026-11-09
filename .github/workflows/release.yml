@@ -79,9 +79,9 @@ jobs:
         id: version
         shell: bash
         env:
-          REQUESTED_VERSION: ${{ inputs.version }}
-          REQUESTED_PUBLISH: ${{ inputs.publish }}
-          REQUESTED_PLATFORMS: ${{ inputs.platforms }}
+          REQUESTED_VERSION: ${{ github.event.inputs.version }}
+          REQUESTED_PUBLISH: ${{ github.event.inputs.publish }}
+          REQUESTED_PLATFORMS: ${{ github.event.inputs.platforms }}
         run: |
           repo_version=$(node -p "require('./apps/desktop/src-tauri/tauri.conf.json').version")
           package_version=$(node -p "require('./apps/desktop/package.json').version")
