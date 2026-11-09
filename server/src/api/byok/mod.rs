@@ -177,10 +177,10 @@ async fn generate(
         Ok(models) => models,
         Err(error) => return api_error(StatusCode::CONFLICT, error),
     };
-    let Some(model) = models
-        .iter()
-        .find(|model| model.public_id == public_model_id)
-    else {
+    let Some(model) = models.iter().find(|model| {
+        model.public_id == public_model_id
+            || model.aliases.iter().any(|alias| alias == public_model_id)
+    }) else {
         return api_error(StatusCode::NOT_FOUND, "model not found");
     };
     if let Some(native) = &state.native {
