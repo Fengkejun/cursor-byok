@@ -134,6 +134,7 @@ export interface IntegrationToolStatus {
 export interface IntegrationsOverview {
   codex: IntegrationToolStatus;
   claude: IntegrationToolStatus;
+  dsh: IntegrationToolStatus;
   external_api_enabled: boolean;
   has_api_key: boolean;
   base_url: string;

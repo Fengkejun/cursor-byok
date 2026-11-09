@@ -61,6 +61,8 @@ pub struct IntegrationsState {
     pub codex: ToolTakeoverState,
     #[serde(default)]
     pub claude: ToolTakeoverState,
+    #[serde(default)]
+    pub dsh: ToolTakeoverState,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]

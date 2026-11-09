@@ -27,6 +27,11 @@ const CODEX_PROVIDER_NAME: &str = "Cursor BYOK";
 const CODEX_CATALOG_FILE: &str = "cursor-byok-model-catalog.json";
 const TOOL_CODEX: &str = "codex";
 const TOOL_CLAUDE: &str = "claude";
+const TOOL_DSH: &str = "dsh";
+/// DeepSeek Harness keeps one YAML patch layer per profile; the provider block
+/// named here is the one this app rewrites.
+const DSH_PROVIDER_ID: &str = "cursorbyok";
+const DSH_API_KEY_ENV: &str = "CURSORBYOK_API_KEY";
 
 static LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
 
@@ -53,6 +58,7 @@ pub struct IntegrationStatus {
 pub struct IntegrationsOverview {
     pub codex: IntegrationStatus,
     pub claude: IntegrationStatus,
+    pub dsh: IntegrationStatus,
     pub external_api_enabled: bool,
     pub has_api_key: bool,
     pub base_url: String,
@@ -78,6 +84,7 @@ pub async fn overview(State(service): State<ControlService>) -> Result<Json<Inte
     Ok(Json(IntegrationsOverview {
         codex: codex_status(&state.codex)?,
         claude: claude_status(&state.claude)?,
+        dsh: dsh_status(&state.dsh)?,
         external_api_enabled: external.enabled,
         has_api_key: !external.api_key.trim().is_empty(),
         base_url: format!("http://127.0.0.1:{}/byok", ports.service_port),
@@ -129,6 +136,7 @@ pub async fn apply(
     match tool {
         TOOL_CODEX => apply_codex(&originals, &model, &base_root, &api_key, &models)?,
         TOOL_CLAUDE => apply_claude(&originals, &model, &base_root, &api_key)?,
+        TOOL_DSH => apply_dsh(&originals, &model, &base_root, &models)?,
         _ => unreachable!(),
     }
     let status = {
@@ -170,7 +178,7 @@ pub async fn restore(
 /// manual refresh. A selected model that disappeared falls back to the first one.
 pub(crate) async fn sync_applied(service: &ControlService) -> Result<()> {
     let state = service.store().integrations_state().await?;
-    if !state.codex.applied && !state.claude.applied {
+    if !state.codex.applied && !state.claude.applied && !state.dsh.applied {
         return Ok(());
     }
     let external = service.store().external_api_settings().await?;
@@ -188,7 +196,7 @@ pub(crate) async fn sync_applied(service: &ControlService) -> Result<()> {
     let _guard = lock().lock().await;
     let mut state = service.store().integrations_state().await?;
     let mut changed = false;
-    for tool in [TOOL_CODEX, TOOL_CLAUDE] {
+    for tool in [TOOL_CODEX, TOOL_CLAUDE, TOOL_DSH] {
         let (applied, current, originals) = {
             let slot = slot_mut(&mut state, tool);
             (slot.applied, slot.model.clone(), slot.originals.clone())
@@ -204,6 +212,7 @@ pub(crate) async fn sync_applied(service: &ControlService) -> Result<()> {
         match tool {
             TOOL_CODEX => apply_codex(&originals, &model, &base_root, &api_key, &models)?,
             TOOL_CLAUDE => apply_claude(&originals, &model, &base_root, &api_key)?,
+            TOOL_DSH => apply_dsh(&originals, &model, &base_root, &models)?,
             _ => unreachable!(),
         }
         slot_mut(&mut state, tool).model = model;
@@ -219,6 +228,7 @@ fn normalize_tool(tool: &str) -> Result<&'static str> {
     match tool.trim().to_ascii_lowercase().as_str() {
         "codex" => Ok(TOOL_CODEX),
         "claude" | "claude-code" | "claudecode" => Ok(TOOL_CLAUDE),
+        "dsh" | "harness" | "deepseek-harness" => Ok(TOOL_DSH),
         other => Err(Error::Config(format!("不支持的工具: {other}"))),
     }
 }
@@ -226,6 +236,7 @@ fn normalize_tool(tool: &str) -> Result<&'static str> {
 fn slot_mut<'a>(state: &'a mut IntegrationsState, tool: &str) -> &'a mut ToolTakeoverState {
     match tool {
         TOOL_CODEX => &mut state.codex,
+        TOOL_DSH => &mut state.dsh,
         _ => &mut state.claude,
     }
 }
@@ -233,6 +244,7 @@ fn slot_mut<'a>(state: &'a mut IntegrationsState, tool: &str) -> &'a mut ToolTak
 fn status_for(tool: &str, saved: &ToolTakeoverState) -> Result<IntegrationStatus> {
     match tool {
         TOOL_CODEX => codex_status(saved),
+        TOOL_DSH => dsh_status(saved),
         _ => claude_status(saved),
     }
 }
@@ -256,6 +268,137 @@ fn claude_settings_path() -> Result<PathBuf> {
 
 fn claude_local_settings_path() -> Result<PathBuf> {
     Ok(home_dir()?.join(".claude").join("settings.local.json"))
+}
+
+/// DeepSeek Harness keeps a patch layer per profile. Prefer the profile that
+/// already wires this app, then any profile that has a patch layer at all.
+fn dsh_config_path() -> Result<PathBuf> {
+    let root = home_dir()?.join(".dsh").join("profiles");
+    let mut candidates = Vec::new();
+    let entries = std::fs::read_dir(&root).map_err(|error| {
+        Error::Config(format!(
+            "无法读取 DeepSeek Harness 配置目录 {}: {error}",
+            root.display()
+        ))
+    })?;
+    for entry in entries.flatten() {
+        let path = entry.path().join("cordis.patch.yml");
+        if path.is_file() {
+            candidates.push(path);
+        }
+    }
+    candidates.sort();
+    let wired = candidates.iter().find(|path| {
+        std::fs::read_to_string(path)
+            .map(|content| content.contains(&format!("{DSH_PROVIDER_ID}:")))
+            .unwrap_or(false)
+    });
+    wired
+        .or_else(|| candidates.first())
+        .cloned()
+        .ok_or_else(|| {
+            Error::Config(format!(
+                "未找到 DeepSeek Harness 配置（{}）",
+                root.join("<profile>/cordis.patch.yml").display()
+            ))
+        })
+}
+
+fn dsh_status(saved: &ToolTakeoverState) -> Result<IntegrationStatus> {
+    let path = dsh_config_path();
+    let mut notes = Vec::new();
+    let (config_path, content) = match path {
+        Ok(path) => {
+            let content = read_text_optional(&path)?;
+            (path.display().to_string(), content)
+        }
+        Err(error) => {
+            notes.push("未检测到 DeepSeek Harness 配置文件".into());
+            return Ok(IntegrationStatus {
+                tool: TOOL_DSH.into(),
+                label: "DeepSeek Harness".into(),
+                installed: false,
+                config_path: error.to_string(),
+                applied: saved.applied,
+                model: saved.model.clone(),
+                applied_at_ms: saved.applied_at_ms,
+                backup_available: !saved.originals.is_empty(),
+                current_model: String::new(),
+                current_provider: String::new(),
+                notes,
+            });
+        }
+    };
+    let (current_model, current_provider) = content
+        .as_deref()
+        .map(dsh_current)
+        .unwrap_or_default();
+    let installed = content
+        .as_deref()
+        .map(|text| text.contains(&format!("{DSH_PROVIDER_ID}:")))
+        .unwrap_or(false);
+    if !installed {
+        notes.push(format!(
+            "配置文件里没有 {DSH_PROVIDER_ID} 供应商，无法接管"
+        ));
+    }
+    if installed && content.as_deref().map(|text| text.contains("models:")).unwrap_or(false) {
+        notes.push("模型列表是静态副本，接管后会随助手模型变化自动重写".into());
+    }
+    if saved.applied {
+        notes.push("修改后需要重启 DeepSeek Harness 才会生效".into());
+    }
+    Ok(IntegrationStatus {
+        tool: TOOL_DSH.into(),
+        label: "DeepSeek Harness".into(),
+        installed,
+        config_path,
+        applied: saved.applied,
+        model: saved.model.clone(),
+        applied_at_ms: saved.applied_at_ms,
+        backup_available: !saved.originals.is_empty(),
+        current_model,
+        current_provider,
+        notes,
+    })
+}
+
+/// Reads the model the patch layer currently advertises for this provider.
+fn dsh_current(content: &str) -> (String, String) {
+    let Ok(value) = serde_yaml::from_str::<Value>(content) else {
+        return (String::new(), String::new());
+    };
+    let profile = value
+        .as_array()
+        .and_then(|entries| {
+            entries.iter().find(|entry| {
+                entry.get("id").and_then(Value::as_str) == Some("llm-pi-ai")
+            })
+        });
+    let Some(profile) = profile else {
+        return (String::new(), String::new());
+    };
+    let provider = profile
+        .get("config")
+        .and_then(|config| config.get("providers"))
+        .and_then(|providers| providers.get(DSH_PROVIDER_ID));
+    let Some(provider) = provider else {
+        return (String::new(), String::new());
+    };
+    let model = provider
+        .get("models")
+        .and_then(Value::as_array)
+        .and_then(|models| models.first())
+        .and_then(|model| model.get("id"))
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_owned();
+    let base_url = provider
+        .get("baseURL")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_owned();
+    (model, base_url)
 }
 
 fn codex_status(saved: &ToolTakeoverState) -> Result<IntegrationStatus> {
@@ -391,6 +534,7 @@ fn capture_originals(tool: &str) -> Result<Vec<SavedConfigFile>> {
             read_optional(&claude_settings_path()?)?,
             read_optional(&claude_local_settings_path()?)?,
         ]),
+        TOOL_DSH => Ok(vec![read_optional(&dsh_config_path()?)?]),
         _ => Err(Error::Config(format!("不支持的工具: {tool}"))),
     }
 }
@@ -499,6 +643,119 @@ fn apply_claude(
         write_file(&path, &rendered)?;
     }
     Ok(())
+}
+
+fn apply_dsh(
+    originals: &[SavedConfigFile],
+    model: &str,
+    base_root: &str,
+    models: &[byok::PublicModel],
+) -> Result<()> {
+    let path = dsh_config_path()?;
+    let current = read_text_optional(&path)?
+        .or_else(|| originals.first().map(|file| file.content.clone()))
+        .unwrap_or_default();
+    let base_url = format!("{base_root}/byok/v1");
+    let rendered = render_dsh_config(&current, models, model, &base_url)?;
+    write_file(&path, &rendered)
+}
+
+fn indent_of(line: &str) -> usize {
+    line.chars().take_while(|value| *value == ' ').count()
+}
+
+/// Rewrites the DSH patch layer in place: the provider block becomes a copy of this
+/// app's catalog, so the harness model picker matches the assistant exactly.
+fn render_dsh_config(
+    content: &str,
+    models: &[byok::PublicModel],
+    model: &str,
+    base_url: &str,
+) -> Result<String> {
+    let mut lines: Vec<String> = content.lines().map(str::to_owned).collect();
+    let provider_header = format!("{DSH_PROVIDER_ID}:");
+    let provider_index = lines
+        .iter()
+        .position(|line| line.trim() == provider_header)
+        .ok_or_else(|| Error::Config(format!("配置里找不到 {DSH_PROVIDER_ID} 供应商，无法接管")))?;
+    let provider_indent = indent_of(&lines[provider_index]);
+    let provider_end = (provider_index + 1..lines.len())
+        .find(|index| {
+            let trimmed = lines[*index].trim();
+            !trimmed.is_empty()
+                && !trimmed.starts_with('#')
+                && indent_of(&lines[*index]) <= provider_indent
+        })
+        .unwrap_or(lines.len());
+
+    // Keep whatever else the user configured (displayName, api, …) and rebuild only
+    // the connection fields plus the model list.
+    let mut kept: Vec<String> = Vec::new();
+    let mut skipping_list = false;
+    let mut list_indent = 0;
+    for line in &lines[provider_index + 1..provider_end] {
+        let trimmed = line.trim_start();
+        if skipping_list {
+            if trimmed.is_empty() || indent_of(line) > list_indent {
+                continue;
+            }
+            skipping_list = false;
+        }
+        if trimmed.starts_with("models:") {
+            skipping_list = true;
+            list_indent = indent_of(line);
+            continue;
+        }
+        if trimmed.starts_with("baseURL:") || trimmed.starts_with("apiKeyEnv:") {
+            continue;
+        }
+        kept.push(line.clone());
+    }
+
+    let field_indent = " ".repeat(provider_indent + 2);
+    let item_indent = " ".repeat(provider_indent + 4);
+    let name_indent = " ".repeat(provider_indent + 6);
+    let mut rebuilt = kept;
+    rebuilt.push(format!("{field_indent}apiKeyEnv: {DSH_API_KEY_ENV}"));
+    rebuilt.push(format!("{field_indent}baseURL: {base_url}"));
+    rebuilt.push(format!("{field_indent}models:"));
+    for entry in models {
+        rebuilt.push(format!("{item_indent}- id: {}", quote(&entry.id)));
+        let name = if entry.name.trim().is_empty() {
+            entry.id.as_str()
+        } else {
+            entry.name.as_str()
+        };
+        rebuilt.push(format!("{name_indent}name: {}", quote(name)));
+    }
+    lines.splice(provider_index + 1..provider_end, rebuilt);
+
+    // The harness boots into a default selection; point it at the taken-over model.
+    if let Some(default_index) = lines
+        .iter()
+        .position(|line| line.trim() == "- id: agent-default-model")
+    {
+        let end = (default_index + 1..lines.len())
+            .find(|index| lines[*index].trim().starts_with("- id: "))
+            .unwrap_or(lines.len());
+        for (key, value) in [
+            ("provider:", DSH_PROVIDER_ID),
+            ("model:", model),
+        ] {
+            if let Some(index) = (default_index + 1..end)
+                .find(|index| lines[*index].trim_start().starts_with(key))
+            {
+                let indent = " ".repeat(indent_of(&lines[index]));
+                lines[index] = format!("{indent}{key} {}", quote(value));
+            }
+        }
+    }
+
+    let mut rendered = lines.join("\n");
+    if !rendered.ends_with('\n') {
+        rendered.push('\n');
+    }
+    Ok(rendered)
 }
 
 fn restore_file(original: &SavedConfigFile) -> Result<()> {
@@ -846,5 +1103,68 @@ key = "value"
     fn codex_top_level_value_ignores_tables() {
         let content = "model = \"top\"\nmodel_provider = \"p\"\n\n[model_providers.custom]\nmodel = \"nested\"\n";
         assert_eq!(codex_current(content), ("top".into(), "p".into()));
+    }
+    #[test]
+    fn dsh_config_rewrites_models_and_strips_stale_entries() {
+        let original = r#"- id: agent-default-model
+  name: "@deepseek-ai/dsh-agent-default-model"
+  config:
+    provider: cursorbyok
+    model: antigravity/gemini-3.5-flash-extra-low
+- id: llm-pi-ai
+  name: "@deepseek-ai/dsh-llm-pi-ai"
+  config:
+    providers:
+      cursorbyok:
+        displayName: cursor助手
+        apiKeyEnv: CURSORBYOK_API_KEY
+        api: openai-completions
+        baseURL: http://127.0.0.1:1111/byok/v1
+        models:
+          - id: antigravity/gemini-3.5-flash-extra-low
+            name: Gemini 3.5 Flash (Low)
+          - id: antigravity/gemini-3.6-flash-low
+            name: Gemini 3.6 Flash (Low)
+      wulu:
+        displayName: 订阅Deepseek
+        api: anthropic-messages
+        baseURL: https://ai.wulusai.com
+        models:
+          - id: qwen3.8-flash
+            name: qwen3.8-flash
+"#;
+        let models = vec![
+            byok::PublicModel {
+                id: "antigravity/gemini-3.8-flash-high".into(),
+                name: "Gemini 3.8 Flash (High)".into(),
+            },
+            byok::PublicModel {
+                id: "antigravity/claude-opus-5-5-high".into(),
+                name: "Claude Opus 5.5 (High)".into(),
+            },
+        ];
+        let rendered = render_dsh_config(
+            original,
+            &models,
+            "antigravity/gemini-3.8-flash-high",
+            "http://127.0.0.1:61702/byok/v1",
+        )
+        .unwrap();
+        assert!(rendered.contains("\"antigravity/gemini-3.8-flash-high\""));
+        assert!(!rendered.contains("gemini-3.5-flash-extra-low\n"));
+        assert!(!rendered.contains("gemini-3.6-flash-low"));
+        assert!(rendered.contains("http://127.0.0.1:61702/byok/v1"));
+        assert!(rendered.contains("qwen3.8-flash"));
+        let parsed: serde_yaml::Value = serde_yaml::from_str(&rendered).unwrap();
+        let profile = parsed
+            .as_sequence()
+            .unwrap()
+            .iter()
+            .find(|entry| entry.get("id").and_then(|id| id.as_str()) == Some("llm-pi-ai"))
+            .unwrap();
+        let provider = &profile["config"]["providers"]["cursorbyok"];
+        assert_eq!(provider["models"].as_sequence().unwrap().len(), 2);
+        assert_eq!(provider["baseURL"].as_str().unwrap(), "http://127.0.0.1:61702/byok/v1");
+        assert_eq!(dsh_current(&rendered).0, "antigravity/gemini-3.8-flash-high");
     }
 }

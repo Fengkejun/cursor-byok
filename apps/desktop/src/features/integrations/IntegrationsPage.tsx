@@ -24,7 +24,7 @@ export function IntegrationsPage() {
       setOverview(next);
       setSelected((current) => {
         const merged = { ...current };
-        for (const tool of [next.codex, next.claude]) {
+        for (const tool of [next.codex, next.claude, next.dsh]) {
           if (!merged[tool.tool]) merged[tool.tool] = tool.model || next.models[0]?.id || "";
         }
         return merged;
@@ -103,6 +103,14 @@ export function IntegrationsPage() {
       onApply={() => void apply(overview.claude)}
       onRestore={() => void restore(overview.claude)} />
 
+    <ToolCard status={overview.dsh} models={overview.models}
+      value={selected[overview.dsh.tool] ?? ""}
+      busy={busy === overview.dsh.tool}
+      disabled={!ready}
+      onSelect={(value) => setSelected((current) => ({ ...current, [overview.dsh.tool]: value }))}
+      onApply={() => void apply(overview.dsh)}
+      onRestore={() => void restore(overview.dsh)} />
+
     <TitledCard title={t("在其他工具中使用")}>
       <div className={styles.addressContent}>
         <div className={styles.addressRow}>
@@ -124,7 +132,7 @@ export function IntegrationsPage() {
 
   return <PageContent title={t("工具接入")} sections={[{
     key: "integrations",
-    estimatedHeight: 760,
+    estimatedHeight: 1020,
     content,
   }]} />;
 }
