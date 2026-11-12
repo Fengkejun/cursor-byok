@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api, type IntegrationsOverview, type IntegrationToolStatus } from "../../shared/api";
+import { api, type IntegrationsOverview, type IntegrationToolStatus, type ThreadMigrationStatus } from "../../shared/api";
 import { PageContent } from "../../shell/layout/PageContent";
 import { Button } from "../../shared/ui/Button";
 import { FormField } from "../../shared/ui/FormControls";
@@ -67,6 +67,30 @@ export function IntegrationsPage() {
     }
   };
 
+  const migrateThreads = async () => {
+    try {
+      setBusy("codex-threads");
+      const result = await api.migrateCodexThreads();
+      message(t("已把 {count} 个历史会话迁移到当前供应商", { count: result.migrated_threads }));
+      await refresh();
+    } catch (cause) {
+      message(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setBusy(null);
+    }
+  };
+  const restoreThreads = async () => {
+    try {
+      setBusy("codex-threads");
+      const result = await api.restoreCodexThreads();
+      message(t("已还原 {count} 个历史会话的供应商归属", { count: result.migrated_threads }));
+      await refresh();
+    } catch (cause) {
+      message(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setBusy(null);
+    }
+  };
   if (!overview) {
     return <PageContent title={t("工具接入")} sections={[{
       key: "loading",
@@ -93,7 +117,11 @@ export function IntegrationsPage() {
       disabled={!ready}
       onSelect={(value) => setSelected((current) => ({ ...current, [overview.codex.tool]: value }))}
       onApply={() => void apply(overview.codex)}
-      onRestore={() => void restore(overview.codex)} />
+      onRestore={() => void restore(overview.codex)}
+      migration={overview.codex_threads}
+      migrationBusy={busy === "codex-threads"}
+      onMigrateThreads={() => void migrateThreads()}
+      onRestoreThreads={() => void restoreThreads()} />
 
     <ToolCard status={overview.claude} models={overview.models}
       value={selected[overview.claude.tool] ?? ""}
@@ -137,7 +165,7 @@ export function IntegrationsPage() {
   }]} />;
 }
 
-function ToolCard({ status, models, value, busy, disabled, onSelect, onApply, onRestore }: {
+function ToolCard({ status, models, value, busy, disabled, onSelect, onApply, onRestore, migration, migrationBusy, onMigrateThreads, onRestoreThreads }: {
   status: IntegrationToolStatus;
   models: ModelOption[];
   value: string;
@@ -146,6 +174,10 @@ function ToolCard({ status, models, value, busy, disabled, onSelect, onApply, on
   onSelect: (value: string) => void;
   onApply: () => void;
   onRestore: () => void;
+  migration?: ThreadMigrationStatus;
+  migrationBusy?: boolean;
+  onMigrateThreads?: () => void;
+  onRestoreThreads?: () => void;
 }) {
   const options = models.map((model) => ({
     value: model.id,
@@ -184,6 +216,29 @@ function ToolCard({ status, models, value, busy, disabled, onSelect, onApply, on
         <span>{t("当前配置")}</span>
         <span>{current}</span>
       </div>
+      {migration && <>
+        <div className={styles.metaRow}>
+          <span>{t("历史会话归属")}</span>
+          <span>{migration.active
+            ? t("已迁移 {count} 个会话到当前供应商", { count: migration.migrated_threads })
+            : t("未迁移，旧会话仍归属原供应商")}</span>
+        </div>
+        <div className={styles.cardActions}>
+          <Button size="small" variant="secondary"
+            disabled={migrationBusy || disabled || !migration.active}
+            onClick={onRestoreThreads}>
+            {t("还原会话归属")}
+          </Button>
+          <Button size="small" variant="secondary"
+            disabled={migrationBusy || disabled || migration.active || !status.applied}
+            onClick={onMigrateThreads}>
+            {migrationBusy ? t("处理中…") : t("迁移历史会话")}
+          </Button>
+        </div>
+        <small className={styles.muted}>
+          {t("旧会话记录了创建时的供应商，接管后可能出现「模型提供商不匹配」，迁移后可继续使用原会话。")}
+        </small>
+      </>}
       <FormField label={t("接管后的模型")} hint={t("可选择本项目已配置的模型，以及插件提供的模型额度。")}>
         <Select value={value} options={options} ariaLabel={t("接管后的模型")}
           disabled={busy || disabled || options.length === 0} onChange={onSelect} />

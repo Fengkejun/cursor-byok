@@ -199,6 +199,7 @@ function normalizeEnums(value: unknown): unknown {
   if (value === null || typeof value !== "object") return value;
   const source = value as Record<string, unknown>;
   const out: Record<string, unknown> = {};
+  let allowedValues: string | null = null;
   for (const [key, child] of Object.entries(source)) {
     if (key === "enum" && Array.isArray(child)) {
       if (child.every((item) => typeof item === "string")) {
@@ -206,15 +207,18 @@ function normalizeEnums(value: unknown): unknown {
       } else if (source.type === "STRING") {
         out[key] = child.map((item) => String(item));
       } else {
-        const allowed = child.map((item) => String(item)).join(", ");
-        const description = typeof source.description === "string" ? source.description.trim() : "";
-        out.description = description
-          ? `${description} (Allowed values: ${allowed})`
-          : `Allowed values: ${allowed}`;
+        // 描述必须最后补写:源对象里 description 常排在 enum 之后,先写会被覆盖。
+        allowedValues = child.map((item) => String(item)).join(", ");
       }
     } else {
       out[key] = normalizeEnums(child);
     }
+  }
+  if (allowedValues !== null) {
+    const description = typeof out.description === "string" ? out.description.trim() : "";
+    out.description = description
+      ? `${description} (Allowed values: ${allowedValues})`
+      : `Allowed values: ${allowedValues}`;
   }
   return out;
 }
@@ -226,6 +230,44 @@ function sanitizeSchema(value: unknown): unknown {
   const clean = normalizeEnums(enforceUppercaseTypes(value)) as Record<string, unknown>;
   if (!clean.type) clean.type = "OBJECT";
   return clean;
+}
+
+// Google 后端会把请求里的 Gemini contents 转成 Claude 的 Anthropic messages;对 claude 模型,
+// 转换出的 tool_use 块必须带 id,否则返回 400
+// "messages.N.content.M.tool_use.id: Field required"。
+// 原生 Gemini 协议的 functionCall/functionResponse 没有 id 概念,所以这里在请求体内闭环补全:
+// 为每个 functionCall 生成 synthetic id,并按 name 做 FIFO 配对把它补到对应的 functionResponse。
+const TOOL_ID_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+function generateToolCallId(): string {
+  const bytes = new Uint8Array(26);
+  crypto.getRandomValues(bytes);
+  let suffix = "";
+  for (const byte of bytes) suffix += TOOL_ID_ALPHABET[byte % TOOL_ID_ALPHABET.length];
+  return `toolu_vrtx_${suffix}`;
+}
+
+function ensureToolCallIds(contents: Array<{ role: string; parts: Array<Record<string, unknown>> }>): void {
+  const pendingByName = new Map<string, string[]>();
+  for (const content of contents) {
+    for (const part of content.parts) {
+      const call = part.functionCall as { name?: string; id?: string } | undefined;
+      if (call) {
+        if (!call.id) call.id = generateToolCallId();
+        if (call.name) {
+          const queue = pendingByName.get(call.name);
+          if (queue) queue.push(call.id);
+          else pendingByName.set(call.name, [call.id]);
+        }
+        continue;
+      }
+      const response = part.functionResponse as { name?: string; id?: string } | undefined;
+      if (response && !response.id && response.name) {
+        const id = pendingByName.get(response.name)?.shift();
+        if (id) response.id = id;
+      }
+    }
+  }
 }
 
 function convertToCloudCodeContents(
@@ -270,6 +312,7 @@ function convertToCloudCodeContents(
             args: typeof call.arguments === "object" && call.arguments !== null
               ? call.arguments
               : {},
+            ...(call.callId ? { id: call.callId } : {}),
           },
           thoughtSignature: sig || "skip_thought_signature_validator",
         });
@@ -286,6 +329,7 @@ function convertToCloudCodeContents(
             functionResponse: {
               name: msg.name || "function",
               response: { result: msg.content },
+              ...(msg.callId ? { id: msg.callId } : {}),
             },
           },
         ],
@@ -326,6 +370,9 @@ function convertToCloudCodeContents(
   if (contents.length > 0 && contents[0].role !== "user") {
     contents.unshift({ role: "user", parts: [{ text: " " }] });
   }
+
+  // Claude 系列模型在服务端会被转成 Anthropic messages,tool_use 必须带 id。
+  ensureToolCallIds(contents);
 
   return {
     contents,

@@ -106,7 +106,7 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 86,
+          "line": 110,
           "column": 10
         }
       ]
@@ -201,7 +201,7 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 126,
+          "line": 154,
           "column": 18
         }
       ]
@@ -517,7 +517,7 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 176,
+          "line": 208,
           "column": 63
         }
       ]
@@ -891,7 +891,7 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 180,
+          "line": 212,
           "column": 16
         },
         {
@@ -1071,7 +1071,7 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 184,
+          "line": 216,
           "column": 16
         }
       ]
@@ -1253,7 +1253,7 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 163,
+          "line": 195,
           "column": 10
         }
       ]
@@ -1572,6 +1572,18 @@
         }
       ]
     },
+    "3a38312f75d9a3a5": {
+      "source": "未迁移，旧会话仍归属原供应商",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 224,
+          "column": 15
+        }
+      ]
+    },
     "3a3f595df70ec8ff": {
       "source": "清理存储空间",
       "kind": "text",
@@ -1650,6 +1662,20 @@
         {
           "file": "features/home/charts/TokenTrendChart.tsx",
           "line": 16,
+          "column": 15
+        }
+      ]
+    },
+    "3cae341759eadd81": {
+      "source": "已还原 {count} 个历史会话的供应商归属",
+      "kind": "template",
+      "placeholders": [
+        "count"
+      ],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 86,
           "column": 15
         }
       ]
@@ -2178,7 +2204,7 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 174,
+          "line": 206,
           "column": 29
         },
         {
@@ -2337,6 +2363,18 @@
           "file": "features/models/CursorModelEditor.tsx",
           "line": 161,
           "column": 69
+        }
+      ]
+    },
+    "58e8055e1eb67c25": {
+      "source": "迁移历史会话",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 235,
+          "column": 42
         }
       ]
     },
@@ -2577,7 +2615,7 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 121,
+          "line": 149,
           "column": 18
         }
       ]
@@ -2694,7 +2732,7 @@
       "refs": [
         {
           "file": "shared/api.ts",
-          "line": 545,
+          "line": 554,
           "column": 43
         }
       ]
@@ -2794,6 +2832,18 @@
           "file": "features/settings/PricingSettingsCard.tsx",
           "line": 102,
           "column": 17
+        }
+      ]
+    },
+    "67d38be20f9cc66b": {
+      "source": "还原会话归属",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 230,
+          "column": 14
         }
       ]
     },
@@ -2997,7 +3047,7 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 187,
+          "line": 242,
           "column": 44
         }
       ]
@@ -3045,7 +3095,7 @@
       "refs": [
         {
           "file": "shared/api.ts",
-          "line": 540,
+          "line": 549,
           "column": 43
         }
       ]
@@ -3148,7 +3198,7 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 158,
+          "line": 190,
           "column": 7
         }
       ]
@@ -3235,7 +3285,7 @@
       "refs": [
         {
           "file": "shared/api.ts",
-          "line": 484,
+          "line": 493,
           "column": 21
         }
       ]
@@ -3409,7 +3459,7 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 125,
+          "line": 153,
           "column": 18
         }
       ]
@@ -3609,7 +3659,7 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 82,
+          "line": 106,
           "column": 18
         }
       ]
@@ -3683,7 +3733,7 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 174,
+          "line": 206,
           "column": 40
         },
         {
@@ -4258,6 +4308,20 @@
         }
       ]
     },
+    "a6e6a21d73055b26": {
+      "source": "已把 {count} 个历史会话迁移到当前供应商",
+      "kind": "template",
+      "placeholders": [
+        "count"
+      ],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 74,
+          "column": 15
+        }
+      ]
+    },
     "a748cc074f78de00": {
       "source": "查看详情",
       "kind": "text",
@@ -4289,6 +4353,20 @@
           "file": "features/models/CursorModelEditor.tsx",
           "line": 155,
           "column": 61
+        }
+      ]
+    },
+    "a78b67629f49cf87": {
+      "source": "已迁移 {count} 个会话到当前供应商",
+      "kind": "template",
+      "placeholders": [
+        "count"
+      ],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 223,
+          "column": 15
         }
       ]
     },
@@ -4342,6 +4420,18 @@
           "file": "features/models/CursorModelEditor.tsx",
           "line": 160,
           "column": 25
+        }
+      ]
+    },
+    "aa139a78dea181b1": {
+      "source": "历史会话归属",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 221,
+          "column": 18
         }
       ]
     },
@@ -4537,7 +4627,7 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 128,
+          "line": 156,
           "column": 17
         }
       ]
@@ -4966,12 +5056,12 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 187,
+          "line": 242,
           "column": 25
         },
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 188,
+          "line": 243,
           "column": 60
         }
       ]
@@ -5284,8 +5374,13 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 167,
+          "line": 199,
           "column": 17
+        },
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 235,
+          "column": 30
         },
         {
           "file": "features/models/CursorSettingsPage.tsx",
@@ -5993,8 +6088,20 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 83,
+          "line": 107,
           "column": 17
+        }
+      ]
+    },
+    "ec48fc20c5b2fd92": {
+      "source": "旧会话记录了创建时的供应商，接管后可能出现「模型提供商不匹配」，迁移后可继续使用原会话。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/integrations/IntegrationsPage.tsx",
+          "line": 239,
+          "column": 12
         }
       ]
     },
@@ -6127,7 +6234,7 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 114,
+          "line": 142,
           "column": 24
         }
       ]
@@ -6257,12 +6364,12 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 71,
+          "line": 95,
           "column": 32
         },
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 133,
+          "line": 161,
           "column": 30
         },
         {
@@ -6317,7 +6424,7 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 167,
+          "line": 199,
           "column": 29
         }
       ]
@@ -6353,7 +6460,7 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 117,
+          "line": 145,
           "column": 18
         }
       ]
@@ -6435,7 +6542,7 @@
       "refs": [
         {
           "file": "features/integrations/IntegrationsPage.tsx",
-          "line": 74,
+          "line": 98,
           "column": 49
         }
       ]

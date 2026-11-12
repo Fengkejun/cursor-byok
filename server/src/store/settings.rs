@@ -14,6 +14,7 @@ const CURSOR_TAKEOVER_ENABLED_KEY: &str = "cursor_takeover_enabled";
 const PRICING_SETTINGS_KEY: &str = "token_pricing";
 const EXTERNAL_API_SETTINGS_KEY: &str = "external_api";
 const INTEGRATIONS_KEY: &str = "tool_integrations";
+const CODEX_THREAD_MIGRATION_KEY: &str = "codex_thread_migration";
 
 /// Embedded default system prompts for commit message generation.
 pub const DEFAULT_COMMIT_PROMPT_ZH_CN: &str = include_str!("../../prompt/cursor/commit/zh-CN.md");
@@ -63,6 +64,32 @@ pub struct IntegrationsState {
     pub claude: ToolTakeoverState,
     #[serde(default)]
     pub dsh: ToolTakeoverState,
+}
+
+/// One Codex chat whose model-provider ownership was rewritten.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MigratedThread {
+    /// Thread id inside `state_N.sqlite`; empty for transcripts that are not
+    /// indexed in the database.
+    #[serde(default)]
+    pub id: String,
+    /// Absolute path of the rollout transcript, empty when the thread has none.
+    #[serde(default)]
+    pub rollout_path: String,
+    /// Provider id the chat used before the migration.
+    #[serde(default)]
+    pub original_provider: String,
+}
+
+/// Bookkeeping for the Codex chat-ownership migration, so it can be undone.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct ThreadMigration {
+    #[serde(default)]
+    pub provider: String,
+    #[serde(default)]
+    pub migrated_at_ms: i64,
+    #[serde(default)]
+    pub threads: Vec<MigratedThread>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
@@ -557,6 +584,33 @@ impl Store {
         let _write = self.writes.lock().await;
         sqlx::query("INSERT INTO service_settings(setting_key, value_json, updated_at_ms) VALUES (?, ?, ?) ON CONFLICT(setting_key) DO UPDATE SET value_json = excluded.value_json, updated_at_ms = excluded.updated_at_ms")
             .bind(INTEGRATIONS_KEY)
+            .bind(value_json)
+            .bind(now_ms())
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    /// Reads the bookkeeping of the Codex chat-ownership migration.
+    pub async fn codex_thread_migration(&self) -> Result<ThreadMigration> {
+        let value = sqlx::query_scalar::<_, String>(
+            "SELECT value_json FROM service_settings WHERE setting_key = ?",
+        )
+        .bind(CODEX_THREAD_MIGRATION_KEY)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(value
+            .as_deref()
+            .and_then(|value| serde_json::from_str(value).ok())
+            .unwrap_or_default())
+    }
+
+    /// Stores the bookkeeping of the Codex chat-ownership migration.
+    pub async fn set_codex_thread_migration(&self, migration: &ThreadMigration) -> Result<()> {
+        let value_json = serde_json::to_string(migration)?;
+        let _write = self.writes.lock().await;
+        sqlx::query("INSERT INTO service_settings(setting_key, value_json, updated_at_ms) VALUES (?, ?, ?) ON CONFLICT(setting_key) DO UPDATE SET value_json = excluded.value_json, updated_at_ms = excluded.updated_at_ms")
+            .bind(CODEX_THREAD_MIGRATION_KEY)
             .bind(value_json)
             .bind(now_ms())
             .execute(&self.pool)

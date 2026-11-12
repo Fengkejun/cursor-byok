@@ -208,6 +208,89 @@ Deno.test("numeric tool enums are moved into the description for Google", async 
   assertEquals(params.properties.mode.enum, ["fast", "slow"]);
 });
 
+Deno.test("tool rounds carry functionCall/functionResponse ids so Anthropic conversion keeps tool_use.id", async () => {
+  let requestBody = "";
+  const base = request();
+  await antigravityProvider.invoke(
+    {
+      model: {
+        id: "claude-opus-5-5-medium",
+        displayName: "Claude Opus 5.5 Medium",
+        privateData: {},
+      },
+      resource: snapshot({
+        accessToken: "mock-access-token",
+        refreshToken: "mock-refresh-token",
+        expiresAt: Date.now() + 3600_000,
+        projectId: "test-project-123",
+      }),
+      request: {
+        ...base,
+        messages: [
+          { role: "user", content: [{ type: "text", text: "List the files" }] },
+          {
+            role: "assistant",
+            text: "",
+            thinking: "",
+            replayState: null,
+            toolCalls: [
+              { index: 0, callId: "call_00_abc", name: "list_files", arguments: { path: "." } },
+              { index: 1, callId: "", name: "read_file", arguments: { path: "a.txt" } },
+            ],
+          },
+          { role: "tool", callId: "call_00_abc", name: "list_files", content: "a.txt", isError: false, parts: [] },
+          { role: "tool", callId: "", name: "read_file", content: "hello", isError: false, parts: [] },
+        ],
+      },
+    },
+    { emit: () => {} },
+    context({
+      stream: (_url, init) => {
+        requestBody = init?.body ?? "";
+        return {
+          status: 200,
+          headers: {},
+          lines: sse([
+            'data: {"response":{"candidates":[{"content":{"parts":[{"text":"ok"}]}}]}}',
+            'data: {"response":{"candidates":[{"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":1,"candidatesTokenCount":1,"totalTokenCount":2}}}',
+          ]),
+        };
+      },
+    }),
+  );
+
+  const body = JSON.parse(requestBody) as {
+    request: { contents: Array<{ role: string; parts: Array<Record<string, any>> }> };
+  };
+  const calls = body.request.contents
+    .flatMap((content) => content.parts)
+    .filter((part) => part.functionCall)
+    .map((part) => part.functionCall);
+  const responses = body.request.contents
+    .flatMap((content) => content.parts)
+    .filter((part) => part.functionResponse)
+    .map((part) => part.functionResponse);
+
+  assertEquals(calls.length, 2);
+  assertEquals(responses.length, 2);
+  assertEquals(calls[0].id, "call_00_abc");
+  for (const call of calls) {
+    assert(typeof call.id === "string" && call.id.length > 0, "functionCall is missing id");
+  }
+  for (const response of responses) {
+    assert(typeof response.id === "string" && response.id.length > 0, "functionResponse is missing id");
+  }
+  const byName = new Map<string, string>();
+  for (const call of calls) byName.set(call.name, call.id);
+  for (const response of responses) {
+    assertEquals(response.id, byName.get(response.name));
+  }
+  assert(
+    calls[1].id.startsWith("toolu_vrtx_"),
+    "missing callId should be replaced by a synthetic tool_use id",
+  );
+});
+
 Deno.test("isQuotaError identifies rate limits and quota exhaustion", () => {
   assert(isQuotaError("RESOURCE_EXHAUSTED: quota exceeded"));
   assert(isQuotaError("Rate limit exceeded for model"));

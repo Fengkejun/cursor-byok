@@ -1,5 +1,6 @@
 //! Exposes the local control API.
 mod calls;
+mod codex_threads;
 mod harness;
 mod integrations;
 mod models;
@@ -238,6 +239,14 @@ pub fn api_router(service: ControlService) -> Router {
         .route(
             "/__byok-api__/api/integrations/{tool}/restore",
             post(integrations::restore),
+        )
+        .route(
+            "/__byok-api__/api/integrations/codex/migrate-threads",
+            post(integrations::migrate_codex_threads),
+        )
+        .route(
+            "/__byok-api__/api/integrations/codex/restore-threads",
+            post(integrations::restore_codex_threads),
         )
         .with_state(service)
         .layer(desktop_cors())

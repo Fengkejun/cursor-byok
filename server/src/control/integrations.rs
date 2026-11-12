@@ -16,8 +16,8 @@ use serde_json::{Map, Value};
 
 use crate::{
     api::byok,
-    control::ControlService,
-    store::{IntegrationsState, SavedConfigFile, ToolTakeoverState},
+    control::{codex_threads, ControlService},
+    store::{IntegrationsState, SavedConfigFile, ThreadMigration, ToolTakeoverState},
     Error, Result,
 };
 
@@ -59,10 +59,26 @@ pub struct IntegrationsOverview {
     pub codex: IntegrationStatus,
     pub claude: IntegrationStatus,
     pub dsh: IntegrationStatus,
+    pub codex_threads: ThreadMigrationStatus,
     pub external_api_enabled: bool,
     pub has_api_key: bool,
     pub base_url: String,
     pub models: Vec<byok::PublicModel>,
+}
+
+/// State of the Codex chat-ownership migration.
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct ThreadMigrationStatus {
+    /// `true` while the chats still point at the takeover provider.
+    pub active: bool,
+    /// Provider the migrated chats use.
+    pub provider: String,
+    /// When the migration ran.
+    pub migrated_at_ms: i64,
+    /// Number of chats that were rewritten.
+    pub migrated_threads: usize,
+    /// Chats that could not be rewritten.
+    pub pending: usize,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -78,6 +94,7 @@ struct CodexPaths {
 
 pub async fn overview(State(service): State<ControlService>) -> Result<Json<IntegrationsOverview>> {
     let state = service.store().integrations_state().await?;
+    let migration = service.store().codex_thread_migration().await?;
     let external = service.store().external_api_settings().await?;
     let ports = service.store().port_settings().await?;
     let models = byok::public_models(service.store(), service.plugin_registry()).await?;
@@ -85,6 +102,13 @@ pub async fn overview(State(service): State<ControlService>) -> Result<Json<Inte
         codex: codex_status(&state.codex)?,
         claude: claude_status(&state.claude)?,
         dsh: dsh_status(&state.dsh)?,
+        codex_threads: ThreadMigrationStatus {
+            active: !migration.threads.is_empty(),
+            provider: migration.provider.clone(),
+            migrated_at_ms: migration.migrated_at_ms,
+            migrated_threads: migration.threads.len(),
+            pending: 0,
+        },
         external_api_enabled: external.enabled,
         has_api_key: !external.api_key.trim().is_empty(),
         base_url: format!("http://127.0.0.1:{}/byok", ports.service_port),
@@ -169,10 +193,71 @@ pub async fn restore(
         slot.originals.clear();
         status_for(tool, slot)?
     };
+    if tool == TOOL_CODEX {
+        // The chat ownership only makes sense while the takeover is active, so
+        // restoring the configuration also gives the chats their old provider.
+        let migration = service.store().codex_thread_migration().await?;
+        if !migration.threads.is_empty() {
+            let _ = codex_threads::restore(&migration).await;
+            service
+                .store()
+                .set_codex_thread_migration(&ThreadMigration::default())
+                .await?;
+        }
+    }
     service.store().set_integrations_state(&state).await?;
     Ok(Json(status))
 }
 
+/// Moves every existing Codex chat to the takeover provider so that previous
+/// tasks can be continued while the takeover is active.
+///
+/// Codex refuses to continue a chat whose recorded provider differs from the
+/// active one, so the ownership of past chats has to move together with the
+/// configuration.
+pub async fn migrate_codex_threads(
+    State(service): State<ControlService>,
+) -> Result<Json<ThreadMigrationStatus>> {
+    let _guard = lock().lock().await;
+    let state = service.store().integrations_state().await?;
+    if !state.codex.applied {
+        return Err(Error::Config(
+            "请先接管 Codex 配置，再迁移历史会话的供应商归属".into(),
+        ));
+    }
+    let (migration, report) = codex_threads::migrate(CODEX_PROVIDER_ID).await?;
+    service
+        .store()
+        .set_codex_thread_migration(&migration)
+        .await?;
+    Ok(Json(ThreadMigrationStatus {
+        active: true,
+        provider: migration.provider.clone(),
+        migrated_at_ms: migration.migrated_at_ms,
+        migrated_threads: migration.threads.len(),
+        pending: report.pending,
+    }))
+}
+
+/// Puts the original provider ownership of the migrated Codex chats back.
+pub async fn restore_codex_threads(
+    State(service): State<ControlService>,
+) -> Result<Json<ThreadMigrationStatus>> {
+    let _guard = lock().lock().await;
+    let migration = service.store().codex_thread_migration().await?;
+    let report = codex_threads::restore(&migration).await?;
+    service
+        .store()
+        .set_codex_thread_migration(&ThreadMigration::default())
+        .await?;
+    Ok(Json(ThreadMigrationStatus {
+        active: false,
+        provider: migration.provider,
+        migrated_at_ms: migration.migrated_at_ms,
+        migrated_threads: report.threads_updated + report.rollouts_updated,
+        pending: report.pending,
+    }))
+}
 /// Re-applies every taken-over tool after the model catalog changed, so tools that
 /// are already wired to this app pick the new list up on their next start without a
 /// manual refresh. A selected model that disappeared falls back to the first one.
@@ -873,7 +958,6 @@ fn render_codex_config(
     let mut in_table = false;
     let mut have_model = false;
     let mut have_provider = false;
-    let mut have_auth = false;
     let mut have_catalog = catalog_file.is_none();
     for line in content.lines() {
         let trimmed = line.trim();
@@ -895,8 +979,10 @@ fn render_codex_config(
                     continue;
                 }
                 Some("preferred_auth_method") => {
-                    lines.push("preferred_auth_method = \"apikey\"".into());
-                    have_auth = true;
+                    // Codex 0.167 no longer understands this key and warns about it in
+                    // its settings screen, so the takeover drops it instead of writing
+                    // a value the tool ignores. The API key still travels through
+                    // `auth.json` plus `requires_openai_auth`.
                     continue;
                 }
                 Some("model_catalog_json") => {
@@ -922,9 +1008,6 @@ fn render_codex_config(
     }
     if !have_provider {
         missing.push(format!("model_provider = {}", quote(CODEX_PROVIDER_ID)));
-    }
-    if !have_auth {
-        missing.push("preferred_auth_method = \"apikey\"".into());
     }
     if !have_catalog {
         if let Some(file) = catalog_file {
@@ -1013,7 +1096,7 @@ command = "npx"
         );
         assert!(rendered.contains("model = \"plugin:example:codex/gpt-6.1-sol\""));
         assert!(rendered.contains("model_provider = \"cursor-byok\""));
-        assert!(rendered.contains("preferred_auth_method = \"apikey\""));
+        assert!(!rendered.contains("preferred_auth_method"));
         assert!(rendered.contains(&format!("model_catalog_json = \"{CODEX_CATALOG_FILE}\"")));
         assert!(rendered.contains("[model_providers.custom]"));
         assert!(rendered.contains("[mcp_servers.firecrawl]"));

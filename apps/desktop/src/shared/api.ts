@@ -131,10 +131,19 @@ export interface IntegrationToolStatus {
   notes: string[];
 }
 
+export interface ThreadMigrationStatus {
+  active: boolean;
+  provider: string;
+  migrated_at_ms: number;
+  migrated_threads: number;
+  pending: number;
+}
+
 export interface IntegrationsOverview {
   codex: IntegrationToolStatus;
   claude: IntegrationToolStatus;
   dsh: IntegrationToolStatus;
+  codex_threads: ThreadMigrationStatus;
   external_api_enabled: boolean;
   has_api_key: boolean;
   base_url: string;
@@ -564,6 +573,8 @@ export const api = {
   integrations: () => request<IntegrationsOverview>("/integrations"),
   applyIntegration: (tool: string, model: string) => request<IntegrationToolStatus>(`/integrations/${encodeURIComponent(tool)}/apply`, { method: "POST", body: JSON.stringify({ model }) }),
   restoreIntegration: (tool: string) => request<IntegrationToolStatus>(`/integrations/${encodeURIComponent(tool)}/restore`, { method: "POST" }),
+  migrateCodexThreads: () => request<ThreadMigrationStatus>("/integrations/codex/migrate-threads", { method: "POST" }),
+  restoreCodexThreads: () => request<ThreadMigrationStatus>("/integrations/codex/restore-threads", { method: "POST" }),
   statisticsStorage: () => request<StatisticsStorage>("/settings/storage/statistics"),
   clearStatisticsStorage: (scope: StatisticsStorageScope) => request<StatisticsStorage>("/settings/storage/statistics", { method: "DELETE", body: JSON.stringify({ scope }) }),
   proxySettings: () => request<ProxySettings>("/settings/proxy"),
