@@ -137,9 +137,11 @@ jobs:
                 rows.push({ platform: "windows-x86_64", group: "windows", os: "windows-latest", args: "--bundles nsis", target: "" });
               }
               if (wanted.includes("macos")) {
+                // 两个架构都在 arm64 runner 上构建:x86_64 走交叉编译,避免依赖
+                // 可能随时下线的 Intel runner 镜像。
                 rows.push(
                   { platform: "macos-aarch64", group: "macos", os: "macos-15", args: "--target aarch64-apple-darwin", target: "aarch64-apple-darwin" },
-                  { platform: "macos-x86_64", group: "macos", os: "macos-15-intel", args: "--target x86_64-apple-darwin", target: "x86_64-apple-darwin" },
+                  { platform: "macos-x86_64", group: "macos", os: "macos-15", args: "--target x86_64-apple-darwin", target: "x86_64-apple-darwin" },
                 );
               }
               if (wanted.includes("linux")) {

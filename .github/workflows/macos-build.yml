@@ -1,0 +1,112 @@
+name: Build macOS app (unsigned)
+
+# 给没有配置 minisign 私钥的使用者准备的快速通道：只产出可直接安装的
+# .dmg / .app,不生成自动更新清单。正式的发版仍走 release.yml。
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "把 dmg 附加到该 tag 的 Release（留空只上传 Actions artifact）"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: macos-unsigned-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: macOS (${{ matrix.platform }})
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: aarch64
+            target: aarch64-apple-darwin
+          - platform: x86_64
+            target: x86_64-apple-darwin
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+          key: macos-unsigned-${{ matrix.target }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: apps/desktop
+        run: npm ci
+
+      # 没有签名私钥就无法生成 updater 产物,这里改写配置只打 app/dmg。
+      - name: Disable updater artifacts for an unsigned build
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const path = "apps/desktop/src-tauri/tauri.conf.json";
+            const config = JSON.parse(fs.readFileSync(path, "utf8"));
+            config.bundle.createUpdaterArtifacts = false;
+            config.plugins = config.plugins ?? {};
+            delete config.plugins.updater;
+            fs.writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`);
+            console.log("updater artifacts disabled");
+          '
+
+      - name: Build the app bundle and dmg
+        working-directory: apps/desktop
+        env:
+          APPLE_SIGNING_IDENTITY: "-"
+        run: npm run tauri build -- --target ${{ matrix.target }} --bundles app,dmg
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p dist-macos
+          target="apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle"
+          find "${target}/dmg" -name '*.dmg' -exec cp {} dist-macos/ \;
+          ditto -c -k --sequesterRsrc --keepParent \
+            "${target}/macos/Cursor BYOK.app" \
+            "dist-macos/Cursor-BYOK-${{ matrix.platform }}.app.zip"
+          ls -lh dist-macos
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.platform }}
+          path: dist-macos/*
+          if-no-files-found: error
+
+  attach:
+    name: Attach to release
+    needs: build
+    if: inputs.tag != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: macos-*
+          path: dist-macos
+          merge-multiple: true
+
+      - name: Upload to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          gh release view "${TAG}" >/dev/null 2>&1 || \
+            gh release create "${TAG}" --prerelease \
+              --title "Cursor BYOK ${TAG}" \
+              --notes "Unsigned macOS build. See docs/MACOS.md for Gatekeeper steps."
+          gh release upload "${TAG}" dist-macos/* --clobber

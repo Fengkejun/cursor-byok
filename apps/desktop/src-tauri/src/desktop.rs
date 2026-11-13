@@ -43,8 +43,17 @@ struct DesktopRuntime {
 fn open_terminal_with_command(command: String) -> tauri::Result<()> {
     #[cfg(target_os = "macos")]
     {
-        let _ = command;
-        Command::new("open").args(["-a", "Terminal"]).status()?;
+        use std::os::unix::fs::PermissionsExt;
+
+        // `open -a Terminal` 只打开窗口,不会执行命令;把命令写成 .command 脚本
+        // 再交给 Terminal 打开,安装 CA 的 sudo 命令才会真正跑起来。
+        let script = std::env::temp_dir().join("cursor-byok-terminal.command");
+        std::fs::write(&script, format!("#!/bin/bash\n{command}\n"))?;
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o700))?;
+        Command::new("open")
+            .args(["-a", "Terminal"])
+            .arg(&script)
+            .status()?;
         Ok(())
     }
     #[cfg(target_os = "windows")]
